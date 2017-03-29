@@ -882,35 +882,32 @@ def summary_maps(df,address_col,out_file_path,gmaps_key,project_name="Summary Ma
 if __name__ == "__main__":
     # Set the location of the input file and intended output file
     # Make sure that forward slashes are used in the filepath
-    in_file = 'J:/temp/nathenry/testing_google_maps_query/test_geocoding.xlsx'
+    in_file = 'J:/temp/nathenry/testing_google_maps_query/geocoding_example.xlsx'
     out_file = 'J:/temp/nathenry/testing_google_maps_query/geocoded_2017-03-22.xlsx'
+    pdf_file = 'J:/temp/nathenry/geocoding_example.xlsx'
     
     # Data key for the Google Maps API
     # Generate your own here:
     # https://developers.google.com/maps/documentation/geocoding/get-api-key
-    key = "ENTER_KEY_HERE"
-    geonames_username = 'ENTER_USERNAME_HERE'
-    
-    in_dict = {'cluster':[1,2,3,4],
-               'use_to_geocode':["Seattle, WA",
-                                 "Beijing",
-                                 "Shakr Boulevard, Shaker Heights, OH",
-                                 "Institute for Health Metrics and Evaluation"],
-               'country':["US","CN","US","US"]}
-    
-    df = pd.DataFrame.from_dict(in_dict,orient='columns')
+    key = "INSERT_KEY_HERE"
+    geonames_username = 'INSERT USERNAME HERE'
+        
+    df = pd.read_excel(in_file)
     
     # CODE EXECUTES
     #df = pd.read_excel(in_file)
     expanded = gm_geocode_data_frame(df,
                                      api_key=key,
                                      address_col="use_to_geocode",
-                                     iso_2_col="country")
+                                     iso_2_col="iso2")
     expanded = osm_geocode_data_frame(expanded,
                                       address_col="use_to_geocode")
     expanded = geonames_geocode_data_frame(expanded,
                                            address_col='use_to_geocode',
-                                           iso_2_col='country',
+                                           iso_2_col='iso2',
                                            username=geonames_username)
-    df = expanded
-    #expanded.to_excel(out_file, index=False)
+    summary_maps(expanded,
+                 address_col='use_to_geocode',
+                 out_file_path=pdf_file,
+                 gmaps_key=key)
+    expanded.to_excel(out_file, index=False)
