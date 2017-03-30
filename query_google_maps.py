@@ -644,8 +644,8 @@ def which_zoom_level(point_meta,
     return max_zoom
 
 
-def get_gmaps_img_query(point_meta,zoom,
-                      map_height_px=512,map_width_px=512):
+def get_gmaps_img_query(point_meta,zoom,api_key,
+                        map_height_px=512,map_width_px=512):
     # Create an argument for the map dimensions (height and width in pixels)
     dimensions_arg = '{}x{}'.format(map_width_px,map_height_px)
     # Get the coordinates of the centroid for all pts (center of the map)
@@ -675,9 +675,10 @@ def get_gmaps_img_query(point_meta,zoom,
 
     # Store all other args as a dict, then encode to URL format
     gmaps_args_dict = {'center':centroid_arg,
-                                  'zoom':zoom,
-                                  'size':dimensions_arg,
-                                  'scale':2}
+                       'zoom':zoom,
+                       'size':dimensions_arg,
+                       'scale':2,
+                       'key':api_key}
     non_marker_args = parse.urlencode(gmaps_args_dict)
     base_url = "https://maps.googleapis.com/maps/api/staticmap"
     full_url = '{}?{}&{}'.format(base_url,non_marker_args,marker_args)
@@ -835,7 +836,9 @@ def summary_maps(df,address_col,out_file_path,gmaps_key,project_name="Summary Ma
                                     map_height_px=map_height_px,
                                     map_width_px=map_width_px)
             
-            gmaps_img_query = get_gmaps_img_query(all_points_on_page,zoom=zoom)
+            gmaps_img_query = get_gmaps_img_query(point_meta=all_points_on_page,
+                                                  zoom=zoom,
+                                                  api_key=gmaps_key)
             osm_img_query = get_osm_img_query(all_points_on_page,zoom=zoom)
 
             # Temp filepath for local files
@@ -884,18 +887,16 @@ if __name__ == "__main__":
     # Make sure that forward slashes are used in the filepath
     in_file = 'J:/temp/nathenry/testing_google_maps_query/geocoding_example.xlsx'
     out_file = 'J:/temp/nathenry/testing_google_maps_query/geocoded_2017-03-22.xlsx'
-    pdf_file = 'J:/temp/nathenry/geocoding_example.xlsx'
+    pdf_file = 'J:/temp/nathenry/geocoding_example.pdf'
     
     # Data key for the Google Maps API
     # Generate your own here:
     # https://developers.google.com/maps/documentation/geocoding/get-api-key
     key = "INSERT_KEY_HERE"
     geonames_username = 'INSERT USERNAME HERE'
-        
-    df = pd.read_excel(in_file)
     
     # CODE EXECUTES
-    #df = pd.read_excel(in_file)
+    df = pd.read_excel(in_file)
     expanded = gm_geocode_data_frame(df,
                                      api_key=key,
                                      address_col="use_to_geocode",
