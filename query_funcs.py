@@ -1,9 +1,10 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
 Created on Fri Mar 17 10:37:07 2017
 @author: nathenry
 
-This program includes a series of functions that allow for automated geocoding
+This module includes a series of functions that allow for automated geocoding
 using the Google Maps, OpenStreetMaps, and GeoNames APIs.
 
 Written in Python 3.6
@@ -11,8 +12,8 @@ Written in Python 3.6
 
 import json
 import numpy as np
-#import ntpath
 import pandas as pd
+import sys
 from os import remove
 from platform import system
 from reportlab.pdfgen import canvas
@@ -302,7 +303,7 @@ def gm_geocode_data_frame(df,
 
     # Create a new column for the formatted API query text
     if type(api_key) != str:
-        raise ValueError("The Google Maps API key should be a string")
+        raise ValueError("The Google Maps API key should be a string.")
     
     if iso_2_col is not None:
         df['gm_query'] = df.apply(lambda x: format_gmaps_args(address_text=x[address_col],
@@ -592,6 +593,36 @@ def geonames_geocode_plain_text(in_text,username='demo',iso_2=None):
     
 
 
+
+##############################################################################
+# If all sources agree on the same point, select it and the buffer as "best"
+##############################################################################
+
+def choose_best_points(df):
+    """This function takes the geocoded df and determines if all sources agree on
+    a single point. If so, the program chooses that point as "best" and determines
+    the overall buffer for the points.
+    Input:
+    df (a geocoded Pandas dataframe)
+    """
+
+    # Check to see which sources were used to geocode
+    gm_used = ('gm_status' in df.columns)
+    osm_used = ('osm_num_results' in df.columns)
+    gn_used = ('gn_num_results' in df.columns)
+
+    # If none were used, return the unmodified DF
+    if (not(gm_used) and not(osm_used) and not(gn_used)):
+        print("None of the engines were used for geocoding!")
+        return df
+
+    # Depending on which sources were used, add all the columns to create points and buffers for
+    # Do some stuff
+    
+    return df
+
+
+
 ##############################################################################
 # Produce summary maps for each row in the dataframe
 ##############################################################################
@@ -682,7 +713,6 @@ def get_gmaps_img_query(point_meta,zoom,api_key,
     non_marker_args = parse.urlencode(gmaps_args_dict)
     base_url = "https://maps.googleapis.com/maps/api/staticmap"
     full_url = '{}?{}&{}'.format(base_url,non_marker_args,marker_args)
-    print(full_url)
     return full_url
 
 
@@ -754,7 +784,6 @@ def summary_maps(df,address_col,out_file_path,gmaps_key,project_name="Summary Ma
         pass
     
     # At least one of the results is usable
-    print("Let's get this party started!")
     
     # Set up the PDF output
     sheet_dimensions = (792,612)
@@ -780,7 +809,7 @@ def summary_maps(df,address_col,out_file_path,gmaps_key,project_name="Summary Ma
         # Title
         pg_txt.setTextOrigin(.5*inch,7.6*inch)
         pg_txt.setFont("Helvetica-Bold",20)
-        pg_txt.textLine("{}: {}".format(page_num,page_info[address_col]))
+        pg_txt.textLine("{}: {}".format(page_num+1,page_info[address_col]))
 
         # Set the page up for printing individual match results
         pg_txt.setTextOrigin(inch,7.2*inch)
@@ -870,7 +899,10 @@ def summary_maps(df,address_col,out_file_path,gmaps_key,project_name="Summary Ma
         
         c.drawText(pg_txt)            
         # Finish writing to the page
-        c.showPage()        
+        c.showPage()
+        # Finally, add another dot to stdout to show progress
+        sys.stdout.write(".")
+        sys.stdout.flush()
     # Finished iterating through pages. We're good!
     c.save()
     # Clean up: remove temp file paths
@@ -878,37 +910,3 @@ def summary_maps(df,address_col,out_file_path,gmaps_key,project_name="Summary Ma
         remove(delete_me)
                 
 
-##############################################################################
-# PROGRAM EXECUTES HERE
-##############################################################################
-
-if __name__ == "__main__":
-    # Set the location of the input file and intended output file
-    # Make sure that forward slashes are used in the filepath
-    in_file = 'J:/temp/nathenry/testing_google_maps_query/geocoding_example.xlsx'
-    out_file = 'J:/temp/nathenry/testing_google_maps_query/geocoded_2017-03-22.xlsx'
-    pdf_file = 'J:/temp/nathenry/geocoding_example.pdf'
-    
-    # Data key for the Google Maps API
-    # Generate your own here:
-    # https://developers.google.com/maps/documentation/geocoding/get-api-key
-    key = "INSERT_KEY_HERE"
-    geonames_username = 'INSERT USERNAME HERE'
-    
-    # CODE EXECUTES
-    df = pd.read_excel(in_file)
-    expanded = gm_geocode_data_frame(df,
-                                     api_key=key,
-                                     address_col="use_to_geocode",
-                                     iso_2_col="iso2")
-    expanded = osm_geocode_data_frame(expanded,
-                                      address_col="use_to_geocode")
-    expanded = geonames_geocode_data_frame(expanded,
-                                           address_col='use_to_geocode',
-                                           iso_2_col='iso2',
-                                           username=geonames_username)
-    summary_maps(expanded,
-                 address_col='use_to_geocode',
-                 out_file_path=pdf_file,
-                 gmaps_key=key)
-    expanded.to_excel(out_file, index=False)
