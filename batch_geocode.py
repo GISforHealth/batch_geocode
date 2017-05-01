@@ -67,7 +67,7 @@ if __name__ == "__main__":
     geocode_col="for_geocoding"
     # Set the default name of the column containing ISO-2 codes
     # (None is an acceptable value)
-    iso2_col="iso2"
+    iso2_col=None
 
     # Data key for the Google Maps API
     # Generate your own here:
