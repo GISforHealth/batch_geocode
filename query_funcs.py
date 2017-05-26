@@ -381,8 +381,11 @@ def osm_query(url_args, output_type="json"):
     base_url = "http://nominatim.openstreetmap.org/search?"
     combined_url = "{}{}&format={}".format(base_url,url_args,output_type)
     # Get the JSON from Nominatim
-    with request.urlopen(combined_url) as response:
-        raw_output = response.read()
+    try:
+        with request.urlopen(combined_url) as response:
+            raw_output = response.read()
+    except urllib.error.HTTPError:
+        raw_output = []
     # Google Maps API will not process >50 queries per second
     sleep(.03)
     return raw_output    
