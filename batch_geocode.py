@@ -158,10 +158,9 @@ if __name__ == "__main__":
     expanded.to_excel(out_file, index=False)
     print("Your output file is now ready to view at {} !".format(out_file))
     print("")
-    sys.stdout.write("Making {} summary maps".format(expanded.shape[0]))
-    sys.stdout.flush()
+    print("Making {} summary maps".format(expanded.shape[0]))
     qf.summary_maps(expanded,
-                   address_col='for_geocoding',
+                   address_col=geocode_col,
                    out_file_path=pdf_file,
                    gmaps_key=gmaps_key)
     print("")
