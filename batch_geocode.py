@@ -69,10 +69,15 @@ if __name__ == "__main__":
     # (None is an acceptable value)
     iso2_col=None
 
-    # Data key for the Google Maps API
+    # Data key for the Google Maps Geocoding API
     # Generate your own here:
     # https://developers.google.com/maps/documentation/geocoding/get-api-key
     gmaps_key = None
+    # Data key for the Google Maps Static Maps API
+    # As of September 2017, this is different from the Google Maps Geocoding API
+    # Generate your own here: 
+    # https://developers.google.com/maps/documentation/static-maps/
+    static_maps_key = None
     # Geonames username
     # Create your own account and activate your username at http://geonames.org
     geonames_username = None
@@ -98,7 +103,8 @@ if __name__ == "__main__":
         parser.add_argument("-p","--pdf",type=str,help="The location of the PDF maps")
         parser.add_argument("-a","--address",type=str,help="The name of the column to geocode")
         parser.add_argument("-s","--iso",type=str,help="The name of the file's ISO2 column (if any)")
-        parser.add_argument("-k","--keygm",type=str,help="Your own activated Google Maps key (optional)")
+        parser.add_argument("-k","--keygm",type=str,help="Your own activated Google Maps geocoding key (optional)")
+        parser.add_argument("-m","--keystatic",type=str,help="Your own activated Google Maps Static Maps key (optional)")
         parser.add_argument("-g","--geonames",type=str,help="Your own activated Geonames username (optional)")
         c_args = parser.parse_args()
 
@@ -110,14 +116,16 @@ if __name__ == "__main__":
         iso2_col = check_cmd(c_args.iso,iso2_col,"ISO2 column (if any)")
         # Quietly add the Google Maps and Geonames keys
         gmaps_key = c_args.keygm or gmaps_key
+        static_maps_key = c_args.keystatic or static_maps_key
         geonames_username = c_args.geonames or geonames_username
     else:
         print("No command line arguments were passed - all default values will be used.")
 
     # Check if any program-specific Google Maps keys or Geonames usernames
     #  have been passed. If not, read some default values from a file.
-    if gmaps_key is None or geonames_username is None:
+    if np.any([i is None for i in [gmaps_key, static_maps_key, geonames_username]]):
         # Load the file containing API keys
+        ## LOAD THE STATIC MAPS KEY
         with open(keys_file) as f:
             keys_dict = json.load(f)
         if gmaps_key is None:
@@ -162,7 +170,7 @@ if __name__ == "__main__":
     qf.summary_maps(expanded,
                    address_col=geocode_col,
                    out_file_path=pdf_file,
-                   gmaps_key=gmaps_key)
+                   gmaps_key=static_maps_key)
     print("")
     print("Your summary maps are ready to view at {} !".format(pdf_file))
     print("")
