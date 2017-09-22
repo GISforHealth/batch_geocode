@@ -14,6 +14,7 @@ Written in Python 3.6
 
 import argparse
 import json
+import numpy as np
 import pandas as pd
 import sys
 import query_funcs as qf
