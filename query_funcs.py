@@ -13,6 +13,7 @@ Written in Python 3.6
 import json
 import numpy as np
 import pandas as pd
+import urllib
 import sys
 from os import remove
 from platform import system
@@ -275,8 +276,12 @@ def gmaps_query(url_args,output_type='json'):
         
     base_url = "https://maps.googleapis.com/maps/api/geocode/"
     combined_url = "{}{}?{}".format(base_url,output_type,url_args)
-    with request.urlopen(combined_url) as response:
-        raw_output = response.read()
+    try:
+        with request.urlopen(combined_url) as response:
+            raw_output = response.read()
+    except urllib.error.HTTPError:
+        raw_output = '{"status":"Failed to open page"}'
+
     # Google Maps API will not process >50 queries per second
     sleep(.03)
     return raw_output
@@ -385,8 +390,8 @@ def osm_query(url_args, output_type="json"):
         with request.urlopen(combined_url) as response:
             raw_output = response.read()
     except urllib.error.HTTPError:
-        raw_output = []
-    # Google Maps API will not process >50 queries per second
+        raw_output = '[]'
+    # API will not process >50 queries per second
     sleep(.03)
     return raw_output    
 
