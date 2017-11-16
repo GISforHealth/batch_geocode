@@ -172,10 +172,25 @@ if __name__ == "__main__":
     print("Your output file is now ready to view at {} !".format(out_file))
     print("")
     print("Making {} summary maps".format(expanded.shape[0]))
-    qf.summary_maps(expanded,
-                   address_col=geocode_col,
-                   out_file_path=pdf_file,
-                   gmaps_key=static_maps_key)
+    # Make summary maps in 50-page chunks
+    def get_chunked_series(total_length, chunk_size=50):
+        def get_chunk(row_num,chunk_size,total_length):
+            low = (np.floor(1.0*row_num/chunk_size) * chunk_size) + 1
+            high = np.min([(np.ceil(1.0*row_num/chunk_size) * chunk_size),
+                           total_length])
+            return "{}_to_{}".format(int(low),int(high))
+        s = pd.Series(range(1,int(total_length) + 1))
+        # Create chunks based on the row number
+        chunked = s.apply(lambda x: get_chunk(x,chunk_size,total_length))
+        return chunked
+    expanded['mapping_chunk'] = get_chunked_series(total_length=expanded.shape[0])
+    for chunk_name, chunked_df in expanded.groupby(by="mapping_chunk"):
+        out_file_path = "{}_{}.pdf".format(pdf_file[:-4],chunk_name)
+        qf.summary_maps(chunk_name,
+                       address_col=geocode_col,
+                       out_file_path=pdf_file,
+                       gmaps_key=static_maps_key)
+        print("  Maps {} completed.".format(chunk_name))
     print("")
     print("Your summary maps are ready to view at {} !".format(pdf_file))
     print("")
