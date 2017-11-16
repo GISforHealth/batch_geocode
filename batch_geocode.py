@@ -192,6 +192,6 @@ if __name__ == "__main__":
                        gmaps_key=static_maps_key)
         print("  Maps {} completed.".format(chunk_name))
     print("")
-    print("Your summary maps are ready to view at {} !".format(pdf_file))
+    print("Your summary maps are ready to view at {} !".format(pdf_file[:-4]))
     print("")
     print("GEOCODING COMPLETE")
