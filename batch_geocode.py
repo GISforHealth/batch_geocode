@@ -130,9 +130,13 @@ if __name__ == "__main__":
         with open(keys_file) as f:
             keys_dict = json.load(f)
         if gmaps_key is None:
-            print("No Google Maps API key has been provided;")
+            print("No Google Maps Geocoding API key has been provided;")
             print("A default API key will be read from file.")
-            gmaps_key = str(randoneof(keys_dict['gmaps']))
+            gmaps_key = str(randoneof(keys_dict['google_geocoding']))
+        if static_maps_key is None:
+            print("No Google Maps Static Maps API key has been provided;")
+            print("A default API key will be read from file.")
+            static_maps_key = str(randoneof(keys_dict['google_static_maps']))
         if geonames_username is None:
             print("No Geonames username has been provided;")
             print("A default API key will be read from file.")
