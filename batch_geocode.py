@@ -185,10 +185,10 @@ if __name__ == "__main__":
         return chunked
     expanded['mapping_chunk'] = get_chunked_series(total_length=expanded.shape[0])
     for chunk_name, chunked_df in expanded.groupby(by="mapping_chunk"):
-        out_file_path = "{}_{}.pdf".format(pdf_file[:-4],chunk_name)
+        out_file_path_map = "{}_{}.pdf".format(pdf_file[:-4],chunk_name)
         qf.summary_maps(chunk_name,
                        address_col=geocode_col,
-                       out_file_path=pdf_file,
+                       out_file_path=out_file_path_map,
                        gmaps_key=static_maps_key)
         print("  Maps {} completed.".format(chunk_name))
     print("")
