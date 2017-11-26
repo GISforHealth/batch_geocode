@@ -85,7 +85,8 @@ if __name__ == "__main__":
     # If no default key are set or passed through the command line, default API
     #   keys and usernames will be read from the following file.
     keys_file = join(j_head,'temp/nathenry/testing_google_maps_query/api_keys/keys.json')
-
+    # Whether or not to make maps
+    make_maps = True
 
     ######################################################################
     # SET UP AND READ COMMAND LINE ARGUMENTS, IF ANY
@@ -107,6 +108,7 @@ if __name__ == "__main__":
         parser.add_argument("-k","--keygm",type=str,help="Your own activated Google Maps geocoding key (optional)")
         parser.add_argument("-m","--keystatic",type=str,help="Your own activated Google Maps Static Maps key (optional)")
         parser.add_argument("-g","--geonames",type=str,help="Your own activated Geonames username (optional)")
+        parser.add_argument("-n","--nomaps", action="store_true", help="Add this argument to skip making vetting maps (optional)")
         c_args = parser.parse_args()
 
         # Check the command line values:
@@ -119,6 +121,10 @@ if __name__ == "__main__":
         gmaps_key = c_args.keygm or gmaps_key
         static_maps_key = c_args.keystatic or static_maps_key
         geonames_username = c_args.geonames or geonames_username
+        # Determine whether or not maps will be made
+        make_maps = not(c_args.nomaps)
+        if not(make_maps):
+            print("No vetting maps will be made for this geocoding run.")
     else:
         print("No command line arguments were passed - all default values will be used.")
 
@@ -150,7 +156,10 @@ if __name__ == "__main__":
     print("***      BEGIN GEOCODING      ***")
     print("*********************************")
     print("Reading input file...")
-    df = pd.read_excel(in_file)
+    if in_file.lower().endswith('.csv'):
+        df = pd.read_csv(in_file, encoding='latin1')
+    else:
+        df = pd.read_excel(in_file)
     print("Geocoding using Google Maps...")
     expanded = qf.gm_geocode_data_frame(df,
                                      api_key=gmaps_key,
@@ -168,30 +177,34 @@ if __name__ == "__main__":
     #expanded = qf.choose_best_points(df=expanded)
 
     print("Exporting output to Excel...")
-    expanded.to_excel(out_file, index=False)
+    if out_file.lower().endswith('.csv'):
+        expanded.to_csv(out_file, encoding='latin1', index=False)
+    else:
+        expanded.to_excel(out_file, index=False)
     print("Your output file is now ready to view at {} !".format(out_file))
     print("")
-    print("Making {} summary maps".format(expanded.shape[0]))
+
     # Make summary maps in 50-page chunks
-    def get_chunked_series(total_length, chunk_size=50):
-        def get_chunk(row_num,chunk_size,total_length):
-            low = (np.floor(1.0*row_num/chunk_size) * chunk_size) + 1
-            high = np.min([(np.ceil(1.0*row_num/chunk_size) * chunk_size),
-                           total_length])
-            return "{}_to_{}".format(int(low),int(high))
-        s = pd.Series(range(1,int(total_length) + 1))
-        # Create chunks based on the row number
-        chunked = s.apply(lambda x: get_chunk(x,chunk_size,total_length))
-        return chunked
-    expanded['mapping_chunk'] = get_chunked_series(total_length=expanded.shape[0])
-    for chunk_name, chunked_df in expanded.groupby(by="mapping_chunk"):
-        out_file_path_map = "{}_{}.pdf".format(pdf_file[:-4],chunk_name)
-        qf.summary_maps(chunked_df,
-                       address_col=geocode_col,
-                       out_file_path=out_file_path_map,
-                       gmaps_key=static_maps_key)
-        print("  Maps {} completed.".format(chunk_name))
-    print("")
-    print("Your summary maps are ready to view at {} !".format(pdf_file[:-4]))
-    print("")
+    if make_maps:
+        print("Making {} summary maps".format(expanded.shape[0]))
+        def get_chunked_series(total_length, chunk_size=50):
+            def get_chunk(row_num,chunk_size,total_length):
+                low = (np.floor(1.0*row_num/chunk_size) * chunk_size) + 1
+                high = np.min([(np.ceil(1.0*row_num/chunk_size) * chunk_size),
+                               total_length])
+                return "{}_to_{}".format(int(low),int(high))
+            s = pd.Series(range(1,int(total_length) + 1))
+            # Create chunks based on the row number
+            chunked = s.apply(lambda x: get_chunk(x,chunk_size,total_length))
+            return chunked
+        expanded['mapping_chunk'] = get_chunked_series(total_length=expanded.shape[0])
+        for chunk_name, chunked_df in expanded.groupby(by="mapping_chunk"):
+            out_file_path_map = "{}_{}.pdf".format(pdf_file[:-4],chunk_name)
+            qf.summary_maps(chunked_df,
+                           address_col=geocode_col,
+                           out_file_path=out_file_path_map,
+                           gmaps_key=static_maps_key)
+            print("  Maps {} completed.".format(chunk_name))
+        print("\nYour summary maps are ready to view at {} !\n`".format(pdf_file[:-4]))
+
     print("GEOCODING COMPLETE")
