@@ -275,13 +275,14 @@ def gmaps_query(url_args,output_type='json'):
     combined_url = "{}{}?{}".format(base_url,output_type,url_args)
     try:
         with request.urlopen(combined_url) as response:
-            raw_output = response.read()
+            raw_output = response.read().decode('utf-8')
     except urllib.error.HTTPError:
         raw_output = '{"status":"Failed to open page"}'
 
     # Google Maps API will not process >50 queries per second
     sleep(.03)
-    return str(raw_output)
+    print(raw_output)
+    return raw_output
 
 
 def gm_geocode_data_frame(df,
@@ -385,7 +386,7 @@ def osm_query(url_args, output_type="json"):
     # Get the JSON from Nominatim
     try:
         with request.urlopen(combined_url) as response:
-            raw_output = response.read()
+            raw_output = response.read().decode('utf-8')
     except urllib.error.HTTPError:
         raw_output = '[]'
     # API will not process >50 queries per second
@@ -534,7 +535,7 @@ def geonames_query(query_text):
     url_base = 'http://api.geonames.org/searchJSON?'
     full_url = '{}{}'.format(url_base,query_text)
     with request.urlopen(full_url) as response:
-        raw_output = response.read()
+        raw_output = response.read().decode('utf-8')
     # Geonames API will not process >50 queries per second
     sleep(.03)
     return raw_output
