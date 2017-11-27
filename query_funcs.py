@@ -260,11 +260,6 @@ def format_gmaps_args(address_text,key=None,iso=None):
             iso = iso.upper()
             component_filter = 'country:{}'.format(iso)
             request_dict['components'] = component_filter
-        elif iso is None or iso=='':
-            pass
-        else:
-            raise ValueError("""The 'iso' argument must be the two-digit 
-                                country ISO code.""")
     q = parse.urlencode(request_dict)
     return q
 
