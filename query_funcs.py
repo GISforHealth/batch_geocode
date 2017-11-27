@@ -255,7 +255,7 @@ def format_gmaps_args(address_text,key=None,iso=None):
         request_dict['key'] = key
     
     if iso is not None:
-        if type(iso) is str and len(iso)==2:
+        if len(str(iso))==2:
             # Add the uppercased ISO code to the request dictionary
             iso = iso.upper()
             component_filter = 'country:{}'.format(iso)
@@ -281,7 +281,7 @@ def gmaps_query(url_args,output_type='json'):
 
     # Google Maps API will not process >50 queries per second
     sleep(.03)
-    return raw_output
+    return str(raw_output)
 
 
 def gm_geocode_data_frame(df,
