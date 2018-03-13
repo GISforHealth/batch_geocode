@@ -281,7 +281,6 @@ def gmaps_query(url_args,output_type='json'):
 
     # Google Maps API will not process >50 queries per second
     sleep(.03)
-    print(raw_output)
     return raw_output
 
 
