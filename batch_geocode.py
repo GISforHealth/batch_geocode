@@ -84,7 +84,8 @@ if __name__ == "__main__":
     geonames_username = None
     # If no default key are set or passed through the command line, default API
     #   keys and usernames will be read from the following file.
-    keys_file = join(j_head,'temp/nathenry/testing_google_maps_query/api_keys/keys.json')
+    #keys_file = join(j_head,'temp/nathenry/testing_google_maps_query/api_keys/keys.json')
+    keys_file = join(j_head,'Project/Mortality/shocks/gbd_2017/process_inputs/keys.json')
     # Whether or not to make maps
     make_maps = True
 
