@@ -913,5 +913,3 @@ def summary_maps(df,address_col,out_file_path,gmaps_key,project_name="Summary Ma
     # Clean up: remove temp file paths
     for delete_me in tempfiles_to_delete:
         remove(delete_me)
-                
-
