@@ -280,7 +280,7 @@ def gmaps_query(url_args,output_type='json'):
         raw_output = '{"status":"Failed to open page"}'
 
     # Google Maps API will not process >50 queries per second
-    sleep(.03)
+    sleep(.025)
     return raw_output
 
 
@@ -913,5 +913,3 @@ def summary_maps(df,address_col,out_file_path,gmaps_key,project_name="Summary Ma
     # Clean up: remove temp file paths
     for delete_me in tempfiles_to_delete:
         remove(delete_me)
-                
-
