@@ -1,21 +1,21 @@
 name: geocoding
 channels:
-  - conda-forge
-  - defaults
+- defaults
 dependencies:
-  - certifi=2018.10.15=py36_1000
-  - click=7.0=py_0
-  - flask=1.0.2=py_2
-  - itsdangerous=1.1.0=py_0
-  - jinja2=2.10=py_1
-  - markupsafe=1.1.0=py36hfa6e2cd_1000
-  - pip=18.1=py36_1000
-  - python=3.6.6=he025d50_0
-  - setuptools=40.5.0=py36_0
-  - vc=14=0
-  - vs2015_runtime=14.0.25420=0
-  - werkzeug=0.14.1=py_0
-  - wheel=0.32.2=py36_0
-  - wincertstore=0.2=py36_1002
-prefix: C:\Users\ajc314\AppData\Local\Continuum\anaconda3\envs\geocoding
-
+- certifi=2016.2.28
+- openssl=1.0.2l
+- pip=9.0.1
+- python=3.6.2
+- setuptools=36.4.0
+- sqlite=3.13.0
+- tk=8.5.18
+- wheel=0.29.0
+- xz=5.2.3
+- zlib=1.2.11
+- pip:
+  - click==7.0
+  - flask==1.0.2
+  - itsdangerous==1.1.0
+  - jinja2==2.10
+  - markupsafe==1.1.0
+  - werkzeug==0.14.1
