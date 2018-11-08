@@ -14,11 +14,10 @@ import json
 import numpy as np
 import pandas as pd
 import urllib
+import requests
 import sys
 from os import remove
 from platform import system
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import inch
 from time import sleep
 from urllib import parse, request
 
@@ -528,9 +527,9 @@ def format_geonames_args(address,username,iso2=None):
 
 
 def geonames_query(query_text):
-    '''Returns the output query in JSON.
+    """Returns the output query in JSON.
        Input
-       query_text (str): the url-encoded query text'''
+       query_text (str): the url-encoded query text"""
     url_base = 'http://api.geonames.org/searchJSON?'
     full_url = '{}{}'.format(url_base,query_text)
     with request.urlopen(full_url) as response:
@@ -597,3 +596,139 @@ def geonames_geocode_plain_text(in_text,username='demo',iso_2=None):
     return expanded
     
 
+
+## REBUILDING FROM SCRATCH HERE
+## REMEMBER TO ADD DOCUMENTATION TO EACH CLASS AND METHOD
+
+class Geocoder(object):
+    """This class manages the entire geocoding process for a single location.
+    """
+    def __init__(self, location_text, iso=None, 
+                 execute=["GM","OSM","GN","FG"], gm_key=None, gn_key=None):
+        """Instantiate all attributes and web interfaces."""
+        self.location_text = location_text
+        self.iso = iso
+        self.execute_names = execute
+        self.execute_apps = dict() # To be filled in `instantiate_interfaces`
+        self.gm_key = gm_key
+        self.gn_key = gn_key
+        self.location_results = dict() # To be passed from the WebInterfaces
+        self.best_result = None # To be chosen from self.location_results
+        pass
+
+    def instantiate_interfaces(self):
+        """Given a list of apps to execute, instantiate various web interfaces.
+        """
+        if "GM" in self.execute_names:
+            self.execute_apps['GM'] = GMInterface(...)
+        if "OSM" in self.execute_names:
+            self.execute_apps['OSM'] = OSMInterface(...)
+        if "GN" in self.execute_names:
+            self.execute_apps['GN'] = GNInterface(...)
+        if "FG" in self.execute_names:
+            self.execute_apps["FG"] = FuzzyGInterface(...)
+        pass
+
+    def geocode(self):
+        """Execute all web queries and build location objects from them.
+        """
+        for app_class in self.execute_apps.keys():
+            # Execute the API query
+            self.execute_apps[app_class].build_query()
+            self.execute_apps[app_class].execute_query()
+            self.execute_apps[app_class].populate_locs()
+            # Add successfully geocoded locations to self.location_results in a 
+            #  way that appropriately accounts for missing results
+            app_results = self.execute_apps[app_class].return_locs()
+            # TODO
+
+    def vet(self):
+        """Execute some vetting of location outputs.
+        """
+        # Use self.location_results as the input for this class
+        pass
+
+    def return_results(self):
+        """Systematically pass back the location result.
+        """
+        pass
+
+
+
+class GeocodedLocation(object):
+    def __init__(self, points_list):
+        """Take a list of points and instantiate a new location."""
+        self.lat = None   # Centroid lat
+        self.long = None  # Centroid long
+        self.north = None # North side of bounding box
+        self.south = None # South side of bounding box
+        self.east = None  # East side of bounding box
+        self.west = None  # West side of bounding box
+
+
+def get_total_buffer(locs_list):
+    """Take a location or list of locations and get the approximate distance (in
+    km) of the bounding box diagonal."""
+    # If a single location, force to list
+    locs_list = np.atleast1d(locs_list)
+    pass
+
+
+class WebInterface(object):
+    def __init__(self, location_text, iso=None, key=None):
+        """Instantiate input values"""
+        self.location_text=location_text
+        self.iso=iso
+        self.key=key
+        self.query  = None # Initialized in `build_query()`
+        self.output = None # Initialized in `execute_query()`
+        self.location_results = None # Initialized in `populate_locs()`
+
+    def build_query(self):
+        """This method will be different for each inherited class."""
+        raise NotImplementedError
+
+    def execute_query(self):
+        """This method should be the same for every interface. Run a pre-defined
+        query with appropriate error handling."""
+        pass
+
+    def populate_locs(self):
+        """This method will be different for every inherited class. Take JSON or
+        XML input and use it to populate up to two GeocodedLocation objects.
+        """
+        raise NotImplementedError
+
+    def return_locs(self):
+        """Return self.location_results.
+        """
+        pass
+
+
+class GMInterface(WebInterface):
+    def build_query(self):
+        pass
+    def populate_locs(self):
+        pass
+
+
+class OSMInterface(WebInterface):
+    def build_query(self):
+        pass
+    def populate_locs(self):
+        pass
+
+
+class GNInterface(WebInterface):
+    def build_query(self):
+        pass
+    def populate_locs(self):
+        pass
+
+
+class FuzzyGInterface(WebInterface):
+    """TODO build this interface last."""
+    def build_query(self):
+        pass
+    def populate_locs(self):
+        pass
