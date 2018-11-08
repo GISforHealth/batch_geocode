@@ -600,7 +600,7 @@ def geonames_geocode_plain_text(in_text,username='demo',iso_2=None):
 ## REBUILDING FROM SCRATCH HERE
 ## REMEMBER TO ADD DOCUMENTATION TO EACH CLASS AND METHOD
 
-class Geocoder(object):
+class WebGeocodingManager(object):
     """This class manages the entire geocoding process for a single location.
     """
     def __init__(self, location_text, iso=None, 
@@ -616,7 +616,7 @@ class Geocoder(object):
         self.best_result = None # To be chosen from self.location_results
         pass
 
-    def instantiate_interfaces(self):
+    def create_web_interfaces(self):
         """Given a list of apps to execute, instantiate various web interfaces.
         """
         if "GM" in self.execute_names:
@@ -648,7 +648,7 @@ class Geocoder(object):
         # Use self.location_results as the input for this class
         pass
 
-    def return_results(self):
+    def get_results(self):
         """Systematically pass back the location result.
         """
         pass
@@ -658,20 +658,14 @@ class Geocoder(object):
 class GeocodedLocation(object):
     def __init__(self, points_list):
         """Take a list of points and instantiate a new location."""
-        self.lat = None   # Centroid lat
-        self.long = None  # Centroid long
-        self.north = None # North side of bounding box
-        self.south = None # South side of bounding box
-        self.east = None  # East side of bounding box
-        self.west = None  # West side of bounding box
-
-
-def get_total_buffer(locs_list):
-    """Take a location or list of locations and get the approximate distance (in
-    km) of the bounding box diagonal."""
-    # If a single location, force to list
-    locs_list = np.atleast1d(locs_list)
-    pass
+        self.points_list = points_list 
+    def get_centroid(self):
+        pass
+    def get_bounding_box(self):
+        pass
+    def get_diag_buffer(self):
+        """Get the approximate distance (in km) of the bounding box diagonal."""
+        pass
 
 
 class WebInterface(object):
@@ -682,7 +676,7 @@ class WebInterface(object):
         self.key=key
         self.query  = None # Initialized in `build_query()`
         self.output = None # Initialized in `execute_query()`
-        self.location_results = None # Initialized in `populate_locs()`
+        self.location_results = [] # Initialized in `populate_locs()`
 
     def build_query(self):
         """This method will be different for each inherited class."""
