@@ -14,11 +14,10 @@ import json
 import numpy as np
 import pandas as pd
 import urllib
+import requests
 import sys
 from os import remove
 from platform import system
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import inch
 from time import sleep
 from urllib import parse, request
 
@@ -528,9 +527,9 @@ def format_geonames_args(address,username,iso2=None):
 
 
 def geonames_query(query_text):
-    '''Returns the output query in JSON.
+    """Returns the output query in JSON.
        Input
-       query_text (str): the url-encoded query text'''
+       query_text (str): the url-encoded query text"""
     url_base = 'http://api.geonames.org/searchJSON?'
     full_url = '{}{}'.format(url_base,query_text)
     with request.urlopen(full_url) as response:
@@ -598,318 +597,132 @@ def geonames_geocode_plain_text(in_text,username='demo',iso_2=None):
     
 
 
+## REBUILDING FROM SCRATCH HERE
+## REMEMBER TO ADD DOCUMENTATION TO EACH CLASS AND METHOD
 
-##############################################################################
-# If all sources agree on the same point, select it and the buffer as "best"
-##############################################################################
-
-def choose_best_points(df):
-    """This function takes the geocoded df and determines if all sources agree on
-    a single point. If so, the program chooses that point as "best" and determines
-    the overall buffer for the points.
-    Input:
-    df (a geocoded Pandas dataframe)
+class WebGeocodingManager(object):
+    """This class manages the entire geocoding process for a single location.
     """
-
-    # Check to see which sources were used to geocode
-    gm_used = ('gm_status' in df.columns)
-    osm_used = ('osm_num_results' in df.columns)
-    gn_used = ('gn_num_results' in df.columns)
-
-    # If none were used, return the unmodified DF
-    if (not(gm_used) and not(osm_used) and not(gn_used)):
-        print("None of the engines were used for geocoding!")
-        return df
-
-    # Depending on which sources were used, add all the columns to create points and buffers for
-    # Do some stuff
-    
-    return df
-
-
-
-##############################################################################
-# Produce summary maps for each row in the dataframe
-##############################################################################
-
-
-def which_zoom_level(point_meta,
-                     map_width_px=512,map_height_px=512):
-    """This function takes in the northeast and southwest point, then returns
-    what zoom level should be used to contain all of the needed points.
-    Inputs
-    Metadata for all the points (in dict form, where entry 'point' is a SingleLocation class)
-    map_width_px, map_height_px (int): The map dimensions in pixels"""
-    # First, get the latitude and longitude range needed to show all pixels
-    # Get the far North, South, East, and West points
-    far_north = max([i['point'].lat for i in point_meta])
-    far_south = min([i['point'].lat for i in point_meta])
-    far_east = max([i['point'].long for i in point_meta])
-    far_west = min([i['point'].long for i in point_meta])    
-
-    # Get the East-West and North-South ranges, multiplied a bit to see all 
-    #  points well within the bounds
-    range_multiplier = 1.1
-    range_ew_dd = (far_east - far_west) * range_multiplier
-    range_ns_dd = (far_north - far_south) * range_multiplier
-    # If there is only one point, there will be a range of 0 (with rounding errors)
-    # Set a minimum range over which to show data
-    min_range_dd = .005
-    range_ew_dd = max([range_ew_dd,min_range_dd])
-    range_ns_dd = max([range_ns_dd,min_range_dd])
-
-    # For info on how Google Maps and OSM display features by zoom level, see
-    #   http://bit.ly/2ntiUmk
-    # Calculate the E-W and N-S range, in decimal degrees
-    lat_range_shown = float(map_width_px)/256.0 * 180
-    long_range_shown = float(map_width_px)/256.0 * 360
-
-    current_zoom = 0
-    max_zoom = 12
-    while current_zoom < max_zoom:
-        next_zoom = current_zoom + 1
-        lat_range_shown = lat_range_shown / 2
-        long_range_shown = long_range_shown / 2
-        viewbox_too_small = (lat_range_shown < (range_ns_dd * 1.1) or \
-                             long_range_shown < (range_ew_dd * 1.1))
-        if viewbox_too_small:
-            return current_zoom
-        else:
-            current_zoom = next_zoom
-    # If the while loop breaks, then we've reached the max zoom:
-    return max_zoom
-
-
-def get_gmaps_img_query(point_meta,zoom,api_key,
-                        map_height_px=512,map_width_px=512):
-    # Create an argument for the map dimensions (height and width in pixels)
-    dimensions_arg = '{}x{}'.format(map_width_px,map_height_px)
-    # Get the coordinates of the centroid for all pts (center of the map)
-    centroid_lat = np.mean([max([i['point'].lat for i in point_meta]),
-                            min([i['point'].lat for i in point_meta])])
-    centroid_long = np.mean([max([i['point'].long for i in point_meta]),
-                             min([i['point'].long for i in point_meta])])
-    centroid_arg = '{},{}'.format(np.round(centroid_lat,decimals=5),
-                                  np.round(centroid_long,decimals=5))
-    
-    # Generate marker arguments
-    # Each marker comes with a separate argument "&markers=[styles]|[lat],[long]"
-    # Get a list of separate arguments based on the point metadata
-    marker_args_list = []
-    for point_dict in point_meta:
-        this_marker_specs = []
-        this_marker_specs.append('color:{}'.format(point_dict['gmaps_color']))
-        this_marker_specs.append('label:{}'.format(point_dict['gmaps_label']))
-        this_marker_specs.append('{},{}'.format(point_dict['point'].lat,
-                                                point_dict['point'].long))
-        # Join all args for this marker using the %7C (|) joining char
-        this_marker_args = '%7C'.join(this_marker_specs)
-        this_marker_args = 'markers={}'.format(this_marker_args)
-        marker_args_list.append(this_marker_args)
-    # Finally, join the args for each marker togehter using '&'
-    marker_args = '&'.join(marker_args_list)
-
-    # Store all other args as a dict, then encode to URL format
-    gmaps_args_dict = {'center':centroid_arg,
-                       'zoom':zoom,
-                       'size':dimensions_arg,
-                       'scale':2,
-                       'key':api_key}
-    non_marker_args = parse.urlencode(gmaps_args_dict)
-    base_url = "https://maps.googleapis.com/maps/api/staticmap"
-    full_url = '{}?{}&{}'.format(base_url,non_marker_args,marker_args)
-    return full_url
-
-
-def get_osm_img_query(point_meta,zoom,
-                      map_height_px=512,map_width_px=512):
-    # Create an argument for the map dimensions (height and width in pixels)
-    dimensions_arg = '{}x{}'.format(map_width_px,map_height_px)    
-
-    # Get the coordinates of the centroid for all pts (center of the map)
-    centroid_lat = np.mean([max([i['point'].lat for i in point_meta]),
-                            min([i['point'].lat for i in point_meta])])
-    centroid_long = np.mean([max([i['point'].long for i in point_meta]),
-                             min([i['point'].long for i in point_meta])])
-    centroid_arg = '{},{}'.format(np.round(centroid_lat,decimals=5),
-                                  np.round(centroid_long,decimals=5))
-    # Create a list of markers and combine them with the | operator
-    marker_list = []
-    for point_dict in point_meta:
-        marker_list.append('{},{},{}'.format(point_dict['point'].lat,
-                                             point_dict['point'].long,
-                                             point_dict['osm_meta']))
-    markers_arg = '|'.join(marker_list)
-
-    # Format as dict and then translate to PHP query format
-    osm_args_dict = {'show':1,
-                     'center':centroid_arg,
-                     'zoom':zoom,
-                     'size':dimensions_arg,
-                     'maptype':'mapnik',
-                     'markers':markers_arg}
-    osm_args_url = parse.urlencode(osm_args_dict)
-    
-    full_url = 'http://staticmap.openstreetmap.de/staticmap.php?{}'.format(osm_args_url)
-    return full_url
-
-
-def summary_maps(df,address_col,out_file_path,gmaps_key,project_name="Summary Maps"):
-    """This function takes the output of geocoding and returns summary text
-    and maps for each geocoding result.
-    
-    Inputs
-    df: The dataframe output from geocoding
-    address_col (str): The name of the column containing addresses for geocoding
-    out_file_path: Where the PDF will be saved, including the .PDF extension
-    project_name: Will be printed in the title and at the top of each page
-    """
-
-
-    # Next, check that at least one of the tests was run and that there are some results we can use
-    which_engines = []
-    for engine in ['gm','osm','gn']:
-        can_use_engine = False
-        # We can only use an engine if there are more than 0 results...
-        if '{}_num_results'.format(engine) in df.columns:
-            total_results = df['{}_num_results'.format(engine)].sum()
-            if total_results > 0:
-                can_use_engine = True
-        # ... and if there are the appropriate lat and long columns
-        needed_cols = ['_r1_lat','_r1_long','_r2_lat','_r2_long']
-        for col in needed_cols:
-            if '{}{}'.format(engine,col) not in df.columns:
-                can_use_engine = False
-        which_engines.append(can_use_engine)
-
-    if which_engines == [False,False,False]:
-        print("""Sorry, there wasn't enough information available in the 
-        dataframe returned. Either the correct columns were not included
-        or there were no results geocoded.""")
+    def __init__(self, location_text, iso=None, 
+                 execute=["GM","OSM","GN","FG"], gm_key=None, gn_key=None):
+        """Instantiate all attributes and web interfaces."""
+        self.location_text = location_text
+        self.iso = iso
+        self.execute_names = execute
+        self.execute_apps = dict() # To be filled in `instantiate_interfaces`
+        self.gm_key = gm_key
+        self.gn_key = gn_key
+        self.location_results = dict() # To be passed from the WebInterfaces
+        self.best_result = None # To be chosen from self.location_results
         pass
-    
-    # At least one of the results is usable
-    
-    # Set up the PDF output
-    sheet_dimensions = (792,612)
-    if out_file_path[-4:].lower() != '.pdf':
-        out_file_path = '{}{}'.format(out_file_path,'.pdf')
-    c = canvas.Canvas(out_file_path,pagesize=sheet_dimensions)
-    
-    # Set up info for maps on each page
-    # Pixel dimensions of the eventual maps
-    map_height_px = 512
-    map_width_px = 512    
-    # Set up some information
-    # Random seed for tempfiles
-    rand_seed = np.random.randint(0,1000000000)
-    tempfiles_to_delete = []
-    
-    for page_num,page_info in df.iterrows():
-        #Set up the page header        
-        pg_txt = c.beginText()            
-        pg_txt.setTextOrigin(.5*inch,7.9*inch)
-        pg_txt.setFont("Helvetica-Oblique",14)
-        pg_txt.textLine(project_name)
-        # Title
-        pg_txt.setTextOrigin(.5*inch,7.6*inch)
-        pg_txt.setFont("Helvetica-Bold",20)
-        pg_txt.textLine("{}: {}".format(page_num+1,page_info[address_col]))
 
-        # Set the page up for printing individual match results
-        pg_txt.setTextOrigin(inch,7.2*inch)
-        pg_txt.setFont("Helvetica",12)
-        pg_txt.setLeading(18)
-        
-        # Each of the six tuples in the following list represents a possible pt
-        # Tuple items: Representation name, lat, long, match name, 
-        #   Google Maps marker color, Google Maps marker label, OSM point specs
-        to_check = [("(1) Google Maps top result","gm_r1_lat","gm_r1_long",
-                     "gm_r1_address","blue","1","lightblue1"),
-                    ("(2) Google Maps 2nd result","gm_r2_lat","gm_r2_long",
-                     "gm_r2_address","blue","2","lightblue2"),
-                    ("(3) OpenStreetMap top result","osm_r1_lat","osm_r1_long",
-                     "osm_r1_address","blue","3","lightblue3"),
-                    ("(4) OpenStreetMap 2nd result","osm_r2_lat","osm_r2_long",
-                     "osm_r2_address","blue","4","lightblue4"),
-                    ("(5) GeoNames top result","gn_r1_lat","gn_r1_long",
-                     "gn_r1_name","blue","5","lightblue5"),
-                    ("(6/Pin) GeoNames 2nd result","gn_r2_lat","gn_r2_long",
-                     "gn_r2_name","blue","6","ltblu-pushpin")]
-        all_points_on_page = []
-        # Write individual results
-        for item in to_check:
-            # Check if there is a match            
-            if ((item[1] in page_info) and (item[2] in page_info) and 
-                (item[3] in page_info) and ~np.isnan(page_info[item[1]]) and 
-                ~np.isnan(page_info[item[2]])):
-                # In this case, a match exists
-                match_text = ("{}: '{}'".format(item[0],page_info[item[3]]))
-                pg_txt.textLine(match_text)
-                # This dict contains information for the map plotters
-                match_desc = {'point':SingleLocation({'lat':page_info[item[1]],
-                                                      'lng':page_info[item[2]]}),
-                              'gmaps_color':item[4],
-                              'gmaps_label':item[5],
-                              'osm_meta':item[6]}
-                all_points_on_page.append(match_desc)
-            else:
-                # There is no match for this particular result
-                match_text = ("{}: No match".format(item[0]))
-                pg_txt.textLine(match_text)
-        # If there was at least one match, plot it on the map
-        if len(all_points_on_page) > 0:
-            # Print out map headings
-            pg_txt.setFont("Helvetica-Bold",14)
-            pg_txt.setTextOrigin(.5*inch,5.55*inch)
-            pg_txt.textLine("Google Maps Overlay:")
-            pg_txt.setTextOrigin(5.55*inch,5.55*inch)
-            pg_txt.textLine("OpenStreetMap Overlay:")
+    def create_web_interfaces(self):
+        """Given a list of apps to execute, instantiate various web interfaces.
+        """
+        if "GM" in self.execute_names:
+            self.execute_apps['GM'] = GMInterface(...)
+        if "OSM" in self.execute_names:
+            self.execute_apps['OSM'] = OSMInterface(...)
+        if "GN" in self.execute_names:
+            self.execute_apps['GN'] = GNInterface(...)
+        if "FG" in self.execute_names:
+            self.execute_apps["FG"] = FuzzyGInterface(...)
+        pass
 
-            zoom = which_zoom_level(all_points_on_page,
-                                    map_height_px=map_height_px,
-                                    map_width_px=map_width_px)
-            
-            gmaps_img_query = get_gmaps_img_query(point_meta=all_points_on_page,
-                                                  zoom=zoom,
-                                                  api_key=gmaps_key)
-            osm_img_query = get_osm_img_query(all_points_on_page,zoom=zoom)
+    def geocode(self):
+        """Execute all web queries and build location objects from them.
+        """
+        for app_class in self.execute_apps.keys():
+            # Execute the API query
+            self.execute_apps[app_class].build_query()
+            self.execute_apps[app_class].execute_query()
+            self.execute_apps[app_class].populate_locs()
+            # Add successfully geocoded locations to self.location_results in a 
+            #  way that appropriately accounts for missing results
+            app_results = self.execute_apps[app_class].return_locs()
+            # TODO
 
-            # Temp filepath for local files
-            # These will be deleted after the PDF has been written
-            rand_seed = rand_seed + 1
-            gmaps_temp_path = "{}temp/nathenry/tempfile_space/gmaps_{}.png".format(j_header(),
-                                                                                   rand_seed)
-            osm_temp_path = "{}temp/nathenry/tempfile_space/osm_{}.png".format(j_header(),
-                                                                                 rand_seed)
-            tempfiles_to_delete.append(gmaps_temp_path)
-            tempfiles_to_delete.append(osm_temp_path)
+    def vet(self):
+        """Execute some vetting of location outputs.
+        """
+        # Use self.location_results as the input for this class
+        pass
 
-            with open(gmaps_temp_path,'wb') as f:
-                with request.urlopen(gmaps_img_query) as response:
-                    f.write(response.read())
-            
-            with open(osm_temp_path,'wb') as f:
-                with request.urlopen(osm_img_query) as response:
-                    f.write(response.read())
-            
-            #Draw the Google Maps overlay and the OSM overlay
-            c.drawImage(gmaps_temp_path,.5*inch,.5*inch,width=4.95*inch,height=4.95*inch)
-            c.drawImage(osm_temp_path,5.55*inch,.5*inch,width=4.95*inch,height=4.95*inch)            
-        else:
-            # There were no maps to draw
-            pg_txt.setFont("Helvetica-Bold",14)
-            pg_txt.setTextOrigin(.5*inch,3*inch)
-            pg_txt.textLine("(NO MAPS AVAILABLE)")
-        
-        c.drawText(pg_txt)            
-        # Finish writing to the page
-        c.showPage()
-        # Finally, add another dot to stdout to show progress
-        sys.stdout.write(".")
-        sys.stdout.flush()
-    # Finished iterating through pages. We're good!
-    c.save()
-    # Clean up: remove temp file paths
-    for delete_me in tempfiles_to_delete:
-        remove(delete_me)
+    def get_results(self):
+        """Systematically pass back the location result.
+        """
+        pass
+
+
+
+class GeocodedLocation(object):
+    def __init__(self, points_list):
+        """Take a list of points and instantiate a new location."""
+        self.points_list = points_list 
+    def get_centroid(self):
+        pass
+    def get_bounding_box(self):
+        pass
+    def get_diag_buffer(self):
+        """Get the approximate distance (in km) of the bounding box diagonal."""
+        pass
+
+
+class WebInterface(object):
+    def __init__(self, location_text, iso=None, key=None):
+        """Instantiate input values"""
+        self.location_text=location_text
+        self.iso=iso
+        self.key=key
+        self.query  = None # Initialized in `build_query()`
+        self.output = None # Initialized in `execute_query()`
+        self.location_results = [] # Initialized in `populate_locs()`
+
+    def build_query(self):
+        """This method will be different for each inherited class."""
+        raise NotImplementedError
+
+    def execute_query(self):
+        """This method should be the same for every interface. Run a pre-defined
+        query with appropriate error handling."""
+        pass
+
+    def populate_locs(self):
+        """This method will be different for every inherited class. Take JSON or
+        XML input and use it to populate up to two GeocodedLocation objects.
+        """
+        raise NotImplementedError
+
+    def return_locs(self):
+        """Return self.location_results.
+        """
+        pass
+
+
+class GMInterface(WebInterface):
+    def build_query(self):
+        pass
+    def populate_locs(self):
+        pass
+
+
+class OSMInterface(WebInterface):
+    def build_query(self):
+        pass
+    def populate_locs(self):
+        pass
+
+
+class GNInterface(WebInterface):
+    def build_query(self):
+        pass
+    def populate_locs(self):
+        pass
+
+
+class FuzzyGInterface(WebInterface):
+    """TODO build this interface last."""
+    def build_query(self):
+        pass
+    def populate_locs(self):
+        pass
