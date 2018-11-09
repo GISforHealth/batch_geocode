@@ -17,7 +17,7 @@ import json
 import numpy as np
 import pandas as pd
 import sys
-import query_funcs as qf
+import geocode.query_funcs as qf
 from os.path import join
 from numpy.random import choice as randoneof
 from time import sleep
