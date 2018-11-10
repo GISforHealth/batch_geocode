@@ -19,6 +19,8 @@ from os import remove
 from platform import system
 from time import sleep
 import xmltodict
+from haversine import haversine
+from collections import namedtuple
 
 # Returns the right filepath to J:/ both locally and on the cluster
 def j_header():
@@ -666,19 +668,43 @@ class WebGeocodingManager(object):
 
 
 class GeocodedLocation(object):
+
     def __init__(self, points_list, address_name, location_type='', source=''):
+
         """Take a list of points and instantiate a new location."""
         self.points_list   = points_list 
         self.address_name  = address_name
         self.location_type = location_type
         self.source        = source
+        self.bound_box     = self.get_bounding_box
+    @staticmethod
+    def calc_haversine_distance(a_long, a_lat, b_long, b_lat):
+        pt_a = (a_lat, a_long)
+        pt_b = (b_lat, b_long)
+        dist = haversine(pt_a, pt_b)
+        return dist
+
     def get_centroid(self):
-        pass
+        avg_long = np.nanmean(pt[0] for pt in self.points_list)
+        avg_lat = np.nanmean(pt[1] for pt in self.points_list)
+        return(avg_long, avg_lat)
+
     def get_bounding_box(self):
-        pass
+        BoundingBox = namedtuple('BoundingBox', ['min_x', 'min_y', 'max_x', 'max_y'])
+        min_long = min(pt[0] for pt in self.points_list)
+        min_lat = min(pt[1] for pt in self.points_list)
+        max_long = max(pt[0] for pt in self.points_list)
+        max_lat = max(pt[1] for pt in self.points_list)
+        bound_box = BoundingBox(min_long, min_lat, max_long, max_lat)
+        return  bound_box
+
     def get_diag_buffer(self):
         """Get the approximate distance (in km) of the bounding box diagonal."""
-        pass
+        diag_dist = self.calc_haversine_distance(self.bound_box.min_x,
+                                                 self.bound_box.min_y,
+                                                 self.bound_box.max_x,
+                                                 self.bound_box.max_y)
+        return diag_dist
 
 
 class WebInterface(object):
