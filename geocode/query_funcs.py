@@ -603,7 +603,48 @@ class WebGeocodingManager(object):
     """
     def __init__(self, location_text, iso=None, execute=["GM","OSM","GN","FG"], 
                  gm_key=None, gn_key=None):
-        """Instantiate all attributes and web interfaces."""
+        """This class manages the web geocoding process for a single location.
+        It takes location text, and ISO-2 code, a list of web geocoding tools to
+        execute, and keys for the two services that require them. The web
+        geocoding tools return up to two GeocodedLocation objects per tool, 
+        which can then be vetted and returned in a format that is convenient and
+        readable into a Pandas DataFrame row.
+
+        Methods:
+            create_web_interfaces():
+                Initialize all web geocoding tools to be used based on the 
+                `execute` argument. This function fills the `execute_apps`
+                attribute.
+            geocode():
+                Geocode location text for all initialized geocoding tools. This
+                function fills the `location_results` attribute.
+            vet():
+                For all location results, determine which results can be 
+                immediately excluded from consideration due to buffer size or
+                other disqualifying properties. This function trips items from
+                the `location_results` list.
+            get_results():
+                Return geocoded locations in a convenient, readable format for
+                Pandas.
+
+        Attributes:
+            location_text (str): Text to geocode.
+            iso (optional, str): ISO-2 code for the location
+            execute_names (list): List of two-character inputs representing
+                web geocoding tools to use. Valid options include "GM" (Google 
+                Maps), "OSM" (OpenStreetMap), "GN" (GeoNames), and "FG" (FuzzyG).
+            execute_apps (dict): Initialized web applications. This attribute is
+                filled in the `create_web_interfaces` method.
+            gm_key (str): Google Maps Geocoding API key passed to the Google 
+                Maps geocoding web tool.
+            gn_key (str): GeoNames username passed to the Geonames web tool.
+            location_results (dict): Dictionary of all GeocodedLocation objects
+                returned from geocoding. This list is populated in the `geocode`
+                method and is then trimmed in the `vet` method.
+            best_result (GeocodedLocation object): Location object created to
+                represent the consensus location across all validated location
+                results. This attribute is populated in the `vet` method.
+        """
         self.location_text = location_text
         self.iso = iso
         self.execute_names = execute
@@ -650,7 +691,7 @@ class WebGeocodingManager(object):
             #  way that appropriately accounts for missing results
             self.execute_apps[app_class].populate_locs()
             # Return all locations as a list
-
+            # TODO
 
     def vet(self):
         """Execute some vetting of location outputs.
@@ -662,7 +703,6 @@ class WebGeocodingManager(object):
         """Systematically pass back the location result.
         """
         pass
-
 
 
 class GeocodedLocation(object):
@@ -683,10 +723,42 @@ class GeocodedLocation(object):
 
 class WebInterface(object):
     def __init__(self, location_text, iso=None, key=None):
-        """Instantiate input values"""
-        self.location_text=location_text
-        self.iso=iso
-        self.key=key
+        """This class is a parent class for all individual web geocoding tools.
+        Given location text and optional arguments (including an API key for 
+        some geocoding tools), construct a web query for the tool, recover text 
+        from the web API, and populate the top two location results as
+        GeocodedLocation objects.
+
+        Methods:
+            build_query(): Given location text, populate the URL and the API
+                "payload" needed for the request to execute. This method 
+                populates the `request_url` and `request_params` attributes. 
+                This method is unique for each individual tool type.
+            execute_query(): Execute the API query. This method populates the 
+                `output` attribute, and is the same across all tool types.
+            populate_locs(): Given the text output from the web API query, 
+                populate valid GeocodingResult objects from the top two results.
+                This method is unique for each individual tool type.
+            return_locs(): Return the `location_results` attribute.
+
+        Attributes:
+            location_text (str): Input text for geocoding.
+            iso (str): Input ISO-2 code for geocoding. Only accepted by some
+                tools.
+            key (str): API key or username. Only required for some tools.
+            request_url (str): URL where the API query will be executed. This
+                attribute is filled by `build_query()`.
+            request_params (dict): Dictionary containing all arguments in the 
+                API request "payload". This attribute is filled by 
+                `build_query()`.
+            output: API output object from the `requests` library. This object
+                is populated by the `execute_query()` method.
+            location_results: A list of up to two `GeocodedLocation` objects.
+                This attribute is populated by the `populate_locs()` method.
+        """
+        self.location_text = location_text
+        self.iso = iso
+        self.key = key
         self.request_url = None # Initialized in `build_query()`
         self.request_params = None # Initialized in `build_query()`
         self.output = None # Initialized in `execute_query()`
@@ -718,6 +790,7 @@ class WebInterface(object):
 
 
 class GMInterface(WebInterface):
+    """This is the specific web interface used for Google Maps."""
     def build_query(self):
         self.request_url = 'https://maps.googleapis.com/maps/api/geocode/json'
         self.request_params = {
@@ -755,6 +828,7 @@ class GMInterface(WebInterface):
 
 
 class OSMInterface(WebInterface):
+    """This is the specific web interface used for OpenStreetMap."""
     def build_query(self):
         self.request_url = "http://nominatim.openstreetmap.org/search"
         self.request_params = {
@@ -777,7 +851,8 @@ class OSMInterface(WebInterface):
             )
 
 
-class GNInterface(WebInterface):
+class GNInterface(WebInterface):    
+    """This is the specific web interface used for GeoNames."""
     def build_query(self):
         self.request_url = "http://api.geonames.org/searchJSON"
         self.request_params = {
@@ -804,7 +879,7 @@ class GNInterface(WebInterface):
 
 
 class FuzzyGInterface(WebInterface):
-    """TODO build this interface last."""
+    """This is the specific web interface used for the FuzzyG geocoding tool."""
     def build_query(self):
         self.request_url = 'http://dma.jrc.it/fuzzygall/xml/'
         self.request_params = {
