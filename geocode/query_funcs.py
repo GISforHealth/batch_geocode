@@ -13,14 +13,12 @@ Written in Python 3.6
 import json
 import numpy as np
 import pandas as pd
-import urllib
 import requests
 import sys
 from os import remove
 from platform import system
 from time import sleep
-from urllib import parse, request
-
+import xmltodict
 
 # Returns the right filepath to J:/ both locally and on the cluster
 def j_header():
@@ -603,8 +601,8 @@ def geonames_geocode_plain_text(in_text,username='demo',iso_2=None):
 class WebGeocodingManager(object):
     """This class manages the entire geocoding process for a single location.
     """
-    def __init__(self, location_text, iso=None, 
-                 execute=["GM","OSM","GN","FG"], gm_key=None, gn_key=None):
+    def __init__(self, location_text, iso=None, execute=["GM","OSM","GN","FG"], 
+                 gm_key=None, gn_key=None):
         """Instantiate all attributes and web interfaces."""
         self.location_text = location_text
         self.iso = iso
@@ -614,33 +612,45 @@ class WebGeocodingManager(object):
         self.gn_key = gn_key
         self.location_results = dict() # To be passed from the WebInterfaces
         self.best_result = None # To be chosen from self.location_results
-        pass
 
     def create_web_interfaces(self):
         """Given a list of apps to execute, instantiate various web interfaces.
         """
         if "GM" in self.execute_names:
-            self.execute_apps['GM'] = GMInterface(...)
+            self.execute_apps['GM'] = GMInterface(
+                location_text = self.location_text,
+                iso           = self.iso,
+                key           = self.gm_key
+            )
         if "OSM" in self.execute_names:
-            self.execute_apps['OSM'] = OSMInterface(...)
+            self.execute_apps['OSM'] = OSMInterface(
+                location_text = self.location_text
+            )
         if "GN" in self.execute_names:
-            self.execute_apps['GN'] = GNInterface(...)
+            self.execute_apps['GN'] = GNInterface(
+                location_text = self.location_text,
+                iso           = self.iso,
+                key           = self.gn_key
+            )
         if "FG" in self.execute_names:
-            self.execute_apps["FG"] = FuzzyGInterface(...)
-        pass
+            self.execute_apps["FG"] = FuzzyGInterface(
+                location_text = self.location_text,
+                iso           = self.iso
+            )
 
     def geocode(self):
         """Execute all web queries and build location objects from them.
         """
         for app_class in self.execute_apps.keys():
-            # Execute the API query
+            # Build the API query
             self.execute_apps[app_class].build_query()
+            # Execute the API query
             self.execute_apps[app_class].execute_query()
-            self.execute_apps[app_class].populate_locs()
             # Add successfully geocoded locations to self.location_results in a 
             #  way that appropriately accounts for missing results
-            app_results = self.execute_apps[app_class].return_locs()
-            # TODO
+            self.execute_apps[app_class].populate_locs()
+            # Return all locations as a list
+
 
     def vet(self):
         """Execute some vetting of location outputs.
@@ -656,9 +666,12 @@ class WebGeocodingManager(object):
 
 
 class GeocodedLocation(object):
-    def __init__(self, points_list):
+    def __init__(self, points_list, address_name, location_type='', source=''):
         """Take a list of points and instantiate a new location."""
-        self.points_list = points_list 
+        self.points_list   = points_list 
+        self.address_name  = address_name
+        self.location_type = location_type
+        self.source        = source
     def get_centroid(self):
         pass
     def get_bounding_box(self):
@@ -674,7 +687,8 @@ class WebInterface(object):
         self.location_text=location_text
         self.iso=iso
         self.key=key
-        self.query  = None # Initialized in `build_query()`
+        self.request_url = None # Initialized in `build_query()`
+        self.request_params = None # Initialized in `build_query()`
         self.output = None # Initialized in `execute_query()`
         self.location_results = [] # Initialized in `populate_locs()`
 
@@ -685,7 +699,11 @@ class WebInterface(object):
     def execute_query(self):
         """This method should be the same for every interface. Run a pre-defined
         query with appropriate error handling."""
-        pass
+        # TODO add more sophisticated error handling
+        self.output = requests.get(
+            url = self.request_url,
+            params = self.request_params
+        )
 
     def populate_locs(self):
         """This method will be different for every inherited class. Take JSON or
@@ -701,28 +719,117 @@ class WebInterface(object):
 
 class GMInterface(WebInterface):
     def build_query(self):
-        pass
+        self.request_url = 'https://maps.googleapis.com/maps/api/geocode/json'
+        self.request_params = {
+            'address' : self.location_text,
+            'key'     : self.key
+        }
+        if self.iso is not None and len(str(self.iso))==2:
+            self.request_params['components'] = "country:{self.iso}"
+
     def populate_locs(self):
-        pass
+        output_dict = json.loads(self.output.text)
+        if 'results' in output_dict.keys():
+            response_list = output_dict['results']
+            num_locs = min([ len(response_list), 2 ])
+            for i in range(0, num_locs):
+                loc_dict = response_list[i]
+                if 'geometry' in loc_dict.keys():
+                    bounds = loc_dict['geometry']['bounds']
+                    points_list = [
+                        [bounds['northeast']['lng'], bounds['northeast']['lat']],
+                        [bounds['southwest']['lng'], bounds['southwest']['lat']]
+                    ]
+                else:
+                    points_list = [
+                        [loc_dict['location']['lng'], loc_dict['location']['lat']]
+                    ]
+                self.location_results.append(
+                    GeocodedLocation(
+                        points_list   = points_list,
+                        address_name  = loc_dict['formatted_address'],
+                        location_type = ';'.join(loc_dict['types']),
+                        source        = 'GM'
+                    )
+                )
 
 
 class OSMInterface(WebInterface):
     def build_query(self):
-        pass
+        self.request_url = "http://nominatim.openstreetmap.org/search"
+        self.request_params = {
+            'q' : self.location_text,
+            'format' : 'json'
+        }
     def populate_locs(self):
-        pass
+        response_list = json.loads(self.output.text)
+        num_locs = min([ len(response_list), 2 ])
+        for i in range(0, num_locs):
+            loc_dict = response_list[i]
+            bb = [float(b) for b in loc_dict['boundingbox']]
+            self.location_results.append(
+                GeocodedLocation(
+                    points_list   = [ [bb[0],bb[2]], [bb[1],bb[3]] ], #SW & NE
+                    address_name  = loc_dict['display_name'],
+                    location_type = loc_dict['class'],
+                    source        = 'OSM'
+                )
+            )
 
 
 class GNInterface(WebInterface):
     def build_query(self):
-        pass
+        self.request_url = "http://api.geonames.org/searchJSON"
+        self.request_params = {
+            'q' : self.location_text,
+            'username' : self.key
+        }
+        if self.iso is not None and len(str(self.iso)) == 2:
+            self.request_params['country'] = self.iso        
     def populate_locs(self):
-        pass
+        response_list = json.loads(self.output.text)['geonames']
+        num_locs = min([ len(response_list), 2 ])
+        for i in range(0, num_locs):
+            loc_dict = response_list[i]
+            self.location_results.append(
+                GeocodedLocation(
+                    points_list   = [
+                        [float(loc_dict['lng']), float(loc_dict['lat'])]
+                    ],
+                    address_name  = loc_dict['name'],
+                    location_type = loc_dict['fclName'],
+                    source        = 'GN'
+                )
+            )
 
 
 class FuzzyGInterface(WebInterface):
     """TODO build this interface last."""
     def build_query(self):
-        pass
+        self.request_url = 'http://dma.jrc.it/fuzzygall/xml/'
+        self.request_params = {
+            'fuzzy' : '0',
+            'start' : '0',
+            'end'   : '2',
+            'q'     : self.location_text
+        }
+        if self.iso is not None and len(str(self.iso)) == 2:
+            self.request_params['cc'] = self.iso
+
     def populate_locs(self):
-        pass
+        output_dict = xmltodict.parse(testFG.output.text)
+        if output_dict['fuzzyg']['response']['results'] is not None:
+            response_list = output_dict['fuzzyg']['response']['results']['result']
+            num_locs = min([ len(response_list), 2 ])
+            for i in range(0, num_locs):
+                loc_dict = response_list[i]
+                self.location_results.append(
+                    GeocodedLocation(
+                        points_list = [
+                            [loc_dict['ddlong'], loc_dict['ddlat']]
+                        ],
+                        address_name = loc_dict['fullname'],
+                        location_type = loc_dict['dsg']['#text'],
+                        source = 'FuzzyG'
+                    )
+                )
