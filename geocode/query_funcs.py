@@ -20,7 +20,7 @@ from platform import system
 from time import sleep
 import xmltodict
 from haversine import haversine
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 
 # Returns the right filepath to J:/ both locally and on the cluster
 def j_header():
@@ -604,7 +604,7 @@ class WebGeocodingManager(object):
     """This class manages the entire geocoding process for a single location.
     """
     def __init__(self, location_text, iso=None, execute=["GM","OSM","GN","FG"], 
-                 gm_key=None, gn_key=None):
+                 gm_key=None, gn_key=None, results_per_app=2, max_buffer=20):
         """This class manages the web geocoding process for a single location.
         It takes location text, and ISO-2 code, a list of web geocoding tools to
         execute, and keys for the two services that require them. The web
@@ -640,12 +640,13 @@ class WebGeocodingManager(object):
             gm_key (str): Google Maps Geocoding API key passed to the Google 
                 Maps geocoding web tool.
             gn_key (str): GeoNames username passed to the Geonames web tool.
+            results_per_app (int): How many results should be returned from each
+                geocoding application?
+            max_buffer (numeric): The maximum acceptable "buffer size" (bounding
+                box diagonal distance) for an individual result to take.
             location_results (dict): Dictionary of all GeocodedLocation objects
                 returned from geocoding. This list is populated in the `geocode`
                 method and is then trimmed in the `vet` method.
-            best_result (GeocodedLocation object): Location object created to
-                represent the consensus location across all validated location
-                results. This attribute is populated in the `vet` method.
         """
         self.location_text = location_text
         self.iso = iso
@@ -653,8 +654,9 @@ class WebGeocodingManager(object):
         self.execute_apps = dict() # To be filled in `instantiate_interfaces`
         self.gm_key = gm_key
         self.gn_key = gn_key
-        self.location_results = dict() # To be passed from the WebInterfaces
-        self.best_result = None # To be chosen from self.location_results
+        self.results_per_app = results_per_app
+        self.max_buffer = max_buffer
+        self.location_results = dict()
 
     def create_web_interfaces(self):
         """Given a list of apps to execute, instantiate various web interfaces.
@@ -663,22 +665,27 @@ class WebGeocodingManager(object):
             self.execute_apps['GM'] = GMInterface(
                 location_text = self.location_text,
                 iso           = self.iso,
-                key           = self.gm_key
+                key           = self.gm_key,
+                n_results     = self.results_per_app
             )
         if "OSM" in self.execute_names:
             self.execute_apps['OSM'] = OSMInterface(
-                location_text = self.location_text
+                location_text = self.location_text,
+                iso           = self.iso,
+                n_results     = self.results_per_app
             )
         if "GN" in self.execute_names:
             self.execute_apps['GN'] = GNInterface(
                 location_text = self.location_text,
                 iso           = self.iso,
-                key           = self.gn_key
+                key           = self.gn_key,
+                n_results     = self.results_per_app
             )
         if "FG" in self.execute_names:
             self.execute_apps["FG"] = FuzzyGInterface(
                 location_text = self.location_text,
-                iso           = self.iso
+                iso           = self.iso,
+                n_results     = self.results_per_app
             )
 
     def geocode(self):
@@ -689,34 +696,67 @@ class WebGeocodingManager(object):
             self.execute_apps[app_class].build_query()
             # Execute the API query
             self.execute_apps[app_class].execute_query()
-            # Add successfully geocoded locations to self.location_results in a 
-            #  way that appropriately accounts for missing results
+            # Compile geocoding results as GeocodedLocation objects
             self.execute_apps[app_class].populate_locs()
-            # Return all locations as a list
-            # TODO
+            # Collect top 2 GeocodedLocations from each web interface
+            loc_res = self.execute_apps[app_class].return_locs()
+            for i in range(len(loc_res)):
+                self.location_results[f'{app_class}{i+1}'] = loc_res[i]
 
     def vet(self):
-        """Execute some vetting of location outputs.
-        """
-        # Use self.location_results as the input for this class
-        pass
+        """Execute some vetting of location outputs."""
+        # This object will store points from all valid results
+        combined_pts = list()
+        num_valid  = 0
+        # Vetting for individual location results based on buffer size
+        for k,loc_res in self.location_results.items():
+            if loc_res is not None:
+                if loc_res.get_diag_buffer() <= self.max_buffer:
+                    # If the location is valid, add its points to the combined list
+                    combined_pts = combined_pts + loc_res.get_points_list()
+                    num_valid = num_valid + 1
+                else:                    
+                    # Remove the location result if the buffer is too large
+                    self.location_results[k] = None
 
-    def get_results(self):
-        """Systematically pass back the location result.
-        """
-        pass
+        # Check to see if a best result can be generated from the bounding box
+        #  of all valid location results combined
+        if len(combined_pts) > 0:
+            combined_location = GeocodedLocation(
+                points_list = combined_pts,
+                address_name = 'Vetted',
+                location_type = f'Composite of {num_valid} geocoded locations',
+                source = 'Vetted'
+            )
+            if combined_location.get_diag_buffer() <= self.max_buffer:
+                self.location_results['best'] = combined_location
+
+    def get_results_as_series(self):
+        """Systematically pass back the location result as a pandas Series."""
+        # Initialize empty results
+        results_to_return = [ pd.Series([]) ]
+        valid_keys = [k for k in self.location_results.keys() 
+                        if self.location_results[k] is not None]
+        # Get a series representation of each non-empty location result, 
+        #  changing names to match the key prefix
+        for k in valid_keys:
+            loc_series = self.location_results[k].get_attributes_as_series()
+            loc_series.index = [f'{k}_{c}' for c in list(loc_series.index)]
+            results_to_return.append( loc_series )
+        # Combine all results into a single series
+        return( pd.concat(results_to_return, axis=0) )
 
 
 class GeocodedLocation(object):
 
-    def __init__(self, points_list, address_name, location_type='', source=''):
+    def __init__(self, points_list, address_name='', location_type='', source=''):
         """Take a list of points and instantiate a new location."""
         self.points_list   = points_list 
         self.address_name  = address_name
         self.location_type = location_type
         self.source        = source
-        self.bound_box     = self.get_bounding_box
-        
+        self.bound_box     = self.get_bounding_box()
+
     @staticmethod
     def calc_haversine_distance(a_long, a_lat, b_long, b_lat):
         pt_a = (a_lat, a_long)
@@ -725,8 +765,8 @@ class GeocodedLocation(object):
         return dist
 
     def get_centroid(self):
-        avg_long = np.nanmean(pt[0] for pt in self.points_list)
-        avg_lat = np.nanmean(pt[1] for pt in self.points_list)
+        avg_long = np.nanmean([pt[0] for pt in self.points_list])
+        avg_lat = np.nanmean([pt[1] for pt in self.points_list])
         return(avg_long, avg_lat)
 
     def get_bounding_box(self):
@@ -736,7 +776,11 @@ class GeocodedLocation(object):
         max_long = max(pt[0] for pt in self.points_list)
         max_lat = max(pt[1] for pt in self.points_list)
         bound_box = BoundingBox(min_long, min_lat, max_long, max_lat)
-        return  bound_box
+        return bound_box
+
+    def get_points_list(self):
+        """Return the full points list used to define the object"""
+        return self.points_list
 
     def get_diag_buffer(self):
         """Get the approximate distance (in km) of the bounding box diagonal."""
@@ -746,9 +790,21 @@ class GeocodedLocation(object):
                                                  b_lat = self.bound_box.max_y)
         return diag_dist
 
+    def get_attributes_as_series(self):
+        """Return all relevant attributes as a pandas Series object."""
+        centroid = self.get_centroid()
+        buffer_dist = self.get_diag_buffer()
+        series_index = ['name','type','long','lat','bb_n','bb_s','bb_e','bb_w',
+                        'buffer']
+        series_vals = [
+            self.address_name, self.location_type, centroid[0], centroid[1], 
+            self.bound_box.max_y, self.bound_box.min_y, self.bound_box.max_x,
+            self.bound_box.min_x, buffer_dist]
+        return pd.Series(series_vals, index=series_index)
+
 
 class WebInterface(object):
-    def __init__(self, location_text, iso=None, key=None):
+    def __init__(self, location_text, iso=None, key=None, n_results=2):
         """This class is a parent class for all individual web geocoding tools.
         Given location text and optional arguments (including an API key for 
         some geocoding tools), construct a web query for the tool, recover text 
@@ -772,6 +828,7 @@ class WebInterface(object):
             iso (str): Input ISO-2 code for geocoding. Only accepted by some
                 tools.
             key (str): API key or username. Only required for some tools.
+            n_results (int): How many geocoding results should be populated?
             request_url (str): URL where the API query will be executed. This
                 attribute is filled by `build_query()`.
             request_params (dict): Dictionary containing all arguments in the 
@@ -785,6 +842,7 @@ class WebInterface(object):
         self.location_text = location_text
         self.iso = iso
         self.key = key
+        self.n_results = n_results
         self.request_url = None # Initialized in `build_query()`
         self.request_params = None # Initialized in `build_query()`
         self.output = None # Initialized in `execute_query()`
@@ -805,14 +863,12 @@ class WebInterface(object):
 
     def populate_locs(self):
         """This method will be different for every inherited class. Take JSON or
-        XML input and use it to populate up to two GeocodedLocation objects.
-        """
+        XML input and use it to populate up to two GeocodedLocation objects."""
         raise NotImplementedError
 
     def return_locs(self):
-        """Return self.location_results.
-        """
-        pass
+        """Return self.location_results."""
+        return self.location_results
 
 
 class GMInterface(WebInterface):
@@ -824,33 +880,35 @@ class GMInterface(WebInterface):
             'key'     : self.key
         }
         if self.iso is not None and len(str(self.iso))==2:
-            self.request_params['components'] = "country:{self.iso}"
+            self.request_params['components'] = f"country:{self.iso}"
 
     def populate_locs(self):
         output_dict = json.loads(self.output.text)
         if 'results' in output_dict.keys():
             response_list = output_dict['results']
-            num_locs = min([ len(response_list), 2 ])
+            num_locs = min([ len(response_list), self.n_results ])
             for i in range(0, num_locs):
-                loc_dict = response_list[i]
-                if 'geometry' in loc_dict.keys():
-                    bounds = loc_dict['geometry']['bounds']
-                    points_list = [
-                        [bounds['northeast']['lng'], bounds['northeast']['lat']],
-                        [bounds['southwest']['lng'], bounds['southwest']['lat']]
-                    ]
-                else:
-                    points_list = [
-                        [loc_dict['location']['lng'], loc_dict['location']['lat']]
-                    ]
-                self.location_results.append(
-                    GeocodedLocation(
-                        points_list   = points_list,
-                        address_name  = loc_dict['formatted_address'],
-                        location_type = ';'.join(loc_dict['types']),
-                        source        = 'GM'
+                loc = response_list[i]
+                try:
+                    if 'bounds' in loc['geometry'].keys():
+                        bounds = loc['geometry']['bounds']
+                        points_list = [
+                            [bounds['northeast']['lng'], bounds['northeast']['lat']],
+                            [bounds['southwest']['lng'], bounds['southwest']['lat']]
+                        ]
+                    elif 'location' in loc['geometry'].keys():
+                        ll = loc['geometry']['location']
+                        points_list = [ [ll['lng'], ll['lat']] ]
+                    self.location_results.append(
+                        GeocodedLocation(
+                            points_list   = points_list,
+                            address_name  = loc['formatted_address'],
+                            location_type = ';'.join(loc['types']),
+                            source        = 'GM'
+                        )
                     )
-                )
+                except KeyError:
+                    pass
 
 
 class OSMInterface(WebInterface):
@@ -859,11 +917,28 @@ class OSMInterface(WebInterface):
         self.request_url = "http://nominatim.openstreetmap.org/search"
         self.request_params = {
             'q' : self.location_text,
-            'format' : 'json'
+            'format' : 'json',
+            'addressdetails': 1
         }
+
+    def in_correct_country(self, loc_dict, keep_unsure=True):
+        """Helper method to determine whether a loaded location result is in the
+        correct country."""
+        if self.iso is None:
+            # There was no ISO code passed and so no filter should be applied
+            return True
+        try:
+            loc_iso = loc_dict['address']['country_code']
+            locations_same = (loc_iso.lower() == str(self.iso).lower())
+            return locations_same
+        except KeyError:
+            return keep_unsure
+
     def populate_locs(self):
         response_list = json.loads(self.output.text)
-        num_locs = min([ len(response_list), 2 ])
+        # Keep only locations with the correct ISO code
+        response_list = [i for i in response_list if self.in_correct_country(i)]
+        num_locs = min([ len(response_list), self.n_results ])
         for i in range(0, num_locs):
             loc_dict = response_list[i]
             bb = [float(b) for b in loc_dict['boundingbox']]
@@ -888,20 +963,23 @@ class GNInterface(WebInterface):
         if self.iso is not None and len(str(self.iso)) == 2:
             self.request_params['country'] = self.iso        
     def populate_locs(self):
-        response_list = json.loads(self.output.text)['geonames']
-        num_locs = min([ len(response_list), 2 ])
-        for i in range(0, num_locs):
-            loc_dict = response_list[i]
-            self.location_results.append(
-                GeocodedLocation(
-                    points_list   = [
-                        [float(loc_dict['lng']), float(loc_dict['lat'])]
-                    ],
-                    address_name  = loc_dict['name'],
-                    location_type = loc_dict['fclName'],
-                    source        = 'GN'
+        try:
+            response_list = json.loads(self.output.text)['geonames']
+            num_locs = min([ len(response_list), self.n_results ])
+            for i in range(0, num_locs):
+                loc_dict = response_list[i]
+                self.location_results.append(
+                    GeocodedLocation(
+                        points_list   = [
+                            [float(loc_dict['lng']), float(loc_dict['lat'])]
+                        ],
+                        address_name  = loc_dict['name'],
+                        location_type = loc_dict['fclName'],
+                        source        = 'GN'
+                    )
                 )
-            )
+        except ValueError:
+            pass
 
 
 class FuzzyGInterface(WebInterface):
@@ -918,10 +996,10 @@ class FuzzyGInterface(WebInterface):
             self.request_params['cc'] = self.iso
 
     def populate_locs(self):
-        output_dict = xmltodict.parse(testFG.output.text)
+        output_dict = xmltodict.parse(self.output.text)
         if output_dict['fuzzyg']['response']['results'] is not None:
             response_list = output_dict['fuzzyg']['response']['results']['result']
-            num_locs = min([ len(response_list), 2 ])
+            num_locs = min([ len(response_list), self.n_results ])
             for i in range(0, num_locs):
                 loc_dict = response_list[i]
                 self.location_results.append(
