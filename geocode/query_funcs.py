@@ -710,13 +710,13 @@ class WebGeocodingManager(object):
 class GeocodedLocation(object):
 
     def __init__(self, points_list, address_name, location_type='', source=''):
-
         """Take a list of points and instantiate a new location."""
         self.points_list   = points_list 
         self.address_name  = address_name
         self.location_type = location_type
         self.source        = source
         self.bound_box     = self.get_bounding_box
+        
     @staticmethod
     def calc_haversine_distance(a_long, a_lat, b_long, b_lat):
         pt_a = (a_lat, a_long)
@@ -740,10 +740,10 @@ class GeocodedLocation(object):
 
     def get_diag_buffer(self):
         """Get the approximate distance (in km) of the bounding box diagonal."""
-        diag_dist = self.calc_haversine_distance(self.bound_box.min_x,
-                                                 self.bound_box.min_y,
-                                                 self.bound_box.max_x,
-                                                 self.bound_box.max_y)
+        diag_dist = self.calc_haversine_distance(a_long = self.bound_box.min_x,
+                                                 a_lat = self.bound_box.min_y,
+                                                 b_long = self.bound_box.max_x,
+                                                 b_lat = self.bound_box.max_y)
         return diag_dist
 
 
