@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Mar 17 10:37:07 2017
-@author: nathenry
+@author: Nathaniel Henry, nathenry@uw.edu
 
 This module includes a series of functions that allow for automated geocoding
-using the Google Maps, OpenStreetMaps, and GeoNames APIs.
+using the Google Maps, OpenStreetMaps, GeoNames, and FuzzyG APIs.
 
 Written in Python 3.6
 """
@@ -18,6 +18,75 @@ import xmltodict
 from haversine import haversine
 from collections import namedtuple
 
+
+################################################################################
+## HELPER FUNCTIONS
+################################################################################
+
+def check_iso(iso):
+    """The geocoding services all take an ISO-2 code. If the passed value does
+    not match the formatting for an ISO-2 code, pass None as the ISO code 
+    instead."""
+    if type(iso) is str and len(iso)==2:
+        return iso.lower()
+    else:
+        return None
+
+
+def geocode_row(address, iso=None, gm_key=None, gn_key=None, execute_names=None,
+                results_per_app=None, max_buffer=None, track_progress=True):
+    """This function geocodes a single address/ISO row from the input dataset.
+    It instantiates a WebGeocodingManager object and runs the entire geocoding
+    process using the WebGeocodingManager API. It then fetches and returns the 
+    geocoding results as a pandas Series.
+
+    Arguments: All arguments except for `address` are optional and will revert
+    to the defaults for the WebGeocodingManager class.
+        address (str): Text to geocode
+        iso (str, optional): ISO-2 code for the location
+        gm_key (str, optional): Activated Google Maps Geocoding API key passed 
+            to the Google Maps geocoding web tool.
+        gn_key (str, optional): Activated GeoNames username passed to the 
+            Geonames web tool.
+        execute_names (list, optional): List of two-character inputs 
+            representing web geocoding tools to use. Valid options include 
+            "GM" (Google Maps), "OSM" (OpenStreetMap), "GN" (GeoNames), and "FG"
+            (FuzzyG).
+        results_per_app (int, optional): How many results should be returned 
+            from each geocoding application?
+        max_buffer (numeric, optional): The maximum acceptable "buffer size" 
+            (bounding box diagonal distance) for an individual result to take.
+        track_progress (boolean, default True): If true，the function writes a 
+            dot (.) to output each time this function runs.
+    """
+    # Define a list of arguments to be passed to a WebGeocodingManager object
+    args_dict = {
+        'location_text' : address,
+        'iso' : check_iso(iso)
+    }
+    # For all other arguments, use the class defaults if they are not passed to
+    #  this function
+    if gm_key is not None: args_dict['gm_key'] = gm_key
+    if gn_key is not None: args_dict['gn_key'] = gn_key
+    if execute is not None: args_dict['execute'] = execute_names
+    if results_per_app is not None: args_dict['results_per_app'] = results_per_app
+    if max_buffer is not None: args_dict['max_buffer'] = max_buffer
+
+    # Run the geocoding manager for this location
+    webgm = qf.WebGeocodingManager(**args_dict)
+    webgm.create_web_interfaces()
+    webgm.geocode()
+    webgm.vet()
+    geocoding_results = webgm.get_results_as_series()
+    if track_progress:
+        # Track progress using dots
+        print('.', end='', flush=True)
+    return geocoding_results
+
+
+################################################################################
+## GEOCODING DATA STRUCTURES AND METHODS
+################################################################################
 
 class WebGeocodingManager(object):
     """This class manages the entire geocoding process for a single location.
@@ -44,7 +113,7 @@ class WebGeocodingManager(object):
                 immediately excluded from consideration due to buffer size or
                 other disqualifying properties. This function trips items from
                 the `location_results` list.
-            get_results():
+            get_results_as_series():
                 Return geocoded locations in a convenient, readable format for
                 Pandas.
 
@@ -363,7 +432,7 @@ class OSMInterface(WebInterface):
             bb = [float(b) for b in loc_dict['boundingbox']]
             self.location_results.append(
                 GeocodedLocation(
-                    points_list   = [ [bb[0],bb[2]], [bb[1],bb[3]] ], #SW & NE
+                    points_list   = [ [bb[2],bb[0]], [bb[3],bb[1]] ], #SW & NE
                     address_name  = loc_dict['display_name'],
                     location_type = loc_dict['class'],
                     source        = 'OSM'
