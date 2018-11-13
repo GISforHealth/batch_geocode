@@ -68,7 +68,7 @@ def geocode_row(address, iso=None, gm_key=None, gn_key=None, execute_names=None,
     #  this function
     if gm_key is not None: args_dict['gm_key'] = gm_key
     if gn_key is not None: args_dict['gn_key'] = gn_key
-    if execute is not None: args_dict['execute'] = execute_names
+    if execute_names is not None: args_dict['execute'] = execute_names
     if results_per_app is not None: args_dict['results_per_app'] = results_per_app
     if max_buffer is not None: args_dict['max_buffer'] = max_buffer
 
