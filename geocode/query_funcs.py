@@ -73,7 +73,7 @@ def geocode_row(address, iso=None, gm_key=None, gn_key=None, execute_names=None,
     if max_buffer is not None: args_dict['max_buffer'] = max_buffer
 
     # Run the geocoding manager for this location
-    webgm = qf.WebGeocodingManager(**args_dict)
+    webgm = WebGeocodingManager(**args_dict)
     webgm.create_web_interfaces()
     webgm.geocode()
     webgm.vet()
