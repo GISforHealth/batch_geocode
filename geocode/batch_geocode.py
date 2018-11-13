@@ -62,6 +62,8 @@ def rearrange_fields(gc_df):
     """Rearrange the column order of a geocoded dataframe and drop unnecessary 
     fields."""
     cols = list(gc_df.columns)
+    # Get all column prefixes (representing source types) and sort
+    #  case-insensitive alphabetically.
     prefixes = sorted(
         list(set( [c[0:c.index('_')] for c in cols] )),
         key=lambda s: s.lower()
