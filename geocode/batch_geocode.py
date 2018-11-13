@@ -16,7 +16,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from encodings.aliases import aliases
-from geocode import query_funcs as qf
+from geocode import query_funcs
 
 
 def read_to_pandas(fp):
@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
     print(f"Geocoding {df.shape[0]} rows of data...")
     geocoded_cols = df.apply(
-        lambda row: geocode_row(
+        lambda row: query_funcs.geocode_row(
             address=row[c_args.address], iso=row[c_args.iso],
             gm_key=c_args.keygm, gn_key=c_args.geonames,
             execute_names=execute_apps, results_per_app=c_args.resultspersource,
