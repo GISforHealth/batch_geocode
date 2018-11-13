@@ -114,9 +114,10 @@ if __name__ == "__main__":
              The default is 15 km.
              """
     )
-    c_args = parser.parse_args()
 
-    # Parse the web tools to execute
+    # Parse command-line arguments
+    c_args = parser.parse_args()
+    # Get the web geocoding tools as a list rather than a comma-separated string
     execute_apps = [i.upper() for i in c_args.usetools.split(',')]
 
     ######################################################################
@@ -141,7 +142,7 @@ if __name__ == "__main__":
     geocoded_cols = rearrange_fields(geocoded_cols)
     df_with_geocoding = pd.concat([df, geocoded_cols], axis=1)
 
-    print("Exporting output to file...")
+    print("\nExporting output to file...")
     write_pandas(df=df_with_geocoding, fp=c_args.outfile, encoding=encoding)
 
     print(f"Your output file is now ready to view at {c_args.outfile} !")
