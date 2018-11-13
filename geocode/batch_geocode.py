@@ -19,23 +19,32 @@ from encodings.aliases import aliases
 import query_funcs
 
 
-def read_to_pandas(fp):
+def read_to_pandas(fp, encoding='detect'):
     """Read an input Excel or CSV file as a pandas DataFrame, testing a variety
     of encodings."""
     readfun = pd.read_csv if fp.lower().endswith('.csv') else pd.read_excel
-    test_encodings = ['utf-8','latin1'] + list(aliases.keys())
-    valid_encoding = None
-    for encoding in test_encodings:
+    if encoding != 'detect':
+        # Try to read using the passed encoding
         try:
             df = readfun(fp, encoding=encoding)
-            valid_encoding = encoding
+            return (df, encoding)
+        except UnicodeDecodeError:
+            print(f"The file {fp} could not be opened with encoding {encoding}.")
+            print("Testing out all valid character encodings now...")
+    # If the 
+    test_encodings = ['utf-8','latin1'] + list(aliases.keys())
+    valid_encoding = None
+    for test_encoding in test_encodings:
+        try:
+            df = readfun(fp, encoding=test_encoding)
+            valid_encoding = test_encoding
             break
         except UnicodeDecodeError:
             pass
     if valid_encoding is None:
         raise UnicodeDecodeError(encoding='All standard encodings', reason='', 
                                  object=f'file {fp}', start=0, end=0)
-    return (df, encoding)
+    return (df, valid_encoding)
 
 
 def write_pandas(df, fp, encoding):
@@ -53,6 +62,8 @@ def rearrange_fields(gc_df):
     """Rearrange the column order of a geocoded dataframe and drop unnecessary 
     fields."""
     cols = list(gc_df.columns)
+    # Get all column prefixes (representing source types) and sort
+    #  case-insensitive alphabetically.
     prefixes = sorted(
         list(set( [c[0:c.index('_')] for c in cols] )),
         key=lambda s: s.lower()
@@ -89,6 +100,8 @@ if __name__ == "__main__":
                         help="The name of the address field to geocode")
     parser.add_argument("-s", "--iso", type=str,
                         help="The name of the file's ISO2 field (if any)")
+    parser.add_argument("-e", "--encoding", type=str, default='detect',
+                        help="Character encoding for the input file")
     parser.add_argument("-k", "--keygm", type=str, 
                         help="Activated Google Maps geocoding key")
     parser.add_argument("-g", "--geonames", type=str, 
@@ -127,7 +140,7 @@ if __name__ == "__main__":
     print("***      BEGIN GEOCODING      ***")
     print("*********************************")
     print("Reading input file...")
-    df, encoding = read_to_pandas(c_args.infile)
+    df, encoding = read_to_pandas(c_args.infile, c_args.encoding)
 
     print(f"Geocoding {df.shape[0]} rows of data...")
     geocoded_cols = df.apply(

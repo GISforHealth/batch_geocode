@@ -92,7 +92,7 @@ class WebGeocodingManager(object):
     """This class manages the entire geocoding process for a single location.
     """
     def __init__(self, location_text, iso=None, execute=["GM","OSM","GN","FG"], 
-                 gm_key=None, gn_key=None, results_per_app=2, max_buffer=20):
+                 gm_key=None, gn_key=None, results_per_app=2, max_buffer=15):
         """This class manages the web geocoding process for a single location.
         It takes location text, and ISO-2 code, a list of web geocoding tools to
         execute, and keys for the two services that require them. The web
