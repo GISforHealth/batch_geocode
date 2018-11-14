@@ -481,7 +481,7 @@ class FuzzyGInterface(WebInterface):
             'q'     : self.location_text
         }
         if self.iso is not None and len(str(self.iso)) == 2:
-            self.request_params['cc'] = self.iso
+            self.request_params['cc'] = self.iso.upper() # ISO2 must be uppercase
 
     def populate_locs(self):
         output_dict = xmltodict.parse(self.output.text)
