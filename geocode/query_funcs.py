@@ -493,7 +493,7 @@ class FuzzyGInterface(WebInterface):
                 self.location_results.append(
                     GeocodedLocation(
                         points_list = [
-                            [loc_dict['ddlong'], loc_dict['ddlat']]
+                            [float(loc_dict['ddlong']), float(loc_dict['ddlat'])]
                         ],
                         address_name = loc_dict['fullname'],
                         location_type = loc_dict['dsg']['#text'],
