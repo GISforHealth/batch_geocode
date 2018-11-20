@@ -16,7 +16,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from encodings.aliases import aliases
-import query_funcs
+import geocode.query_funcs
 
 
 def read_to_pandas(fp, encoding='detect'):
@@ -75,6 +75,44 @@ def rearrange_fields(gc_df):
     all_cols = [f'{p}_{s}' for p in prefixes for s in suffixes]
     return gc_df.reindex(labels=all_cols, axis='columns')
 
+
+def geocode_from_flask(infile, outfile, keygm, geonames, iso, encoding, address,
+                       usetools, resultspersource, buffer):
+        """Create a function that can be called from flask routes.py that wraps the
+        whole batch_geocode process."""
+
+        # Process the optional input from flask
+        if usetools is "":
+            usetools = 'GM,OSM,GN,FG'
+        if encoding is "":
+            encoding = 'detect'
+        if resultspersource is "":
+            resultspersource = 2
+        else:
+            resultspersource = int(resultspersource)
+        if buffer is "":
+            buffer = 15
+        else:
+            buffer = float(buffer)
+
+        # Get the web geocoding tools as a list rather than a comma-separated string
+        execute_apps = [i.upper() for i in usetools.split(',')]
+        # Reading input file
+        df, encoding = read_to_pandas(infile, encoding)
+        # Geocode Rows of Data
+        geocoded_cols = df.apply(
+            lambda row: geocode.query_funcs.geocode_row(
+                address=row[address], iso=row[iso],
+                gm_key=keygm, gn_key=geonames,
+                execute_names=execute_apps, results_per_app=resultspersource,
+                max_buffer=buffer
+            ),
+            axis=1
+        )
+        geocoded_cols = rearrange_fields(geocoded_cols)
+        df_with_geocoding = pd.concat([df, geocoded_cols], axis=1)
+        # Export Outfile
+        write_pandas(df=df_with_geocoding, fp=outfile, encoding=encoding)
 
 
 if __name__ == "__main__":
@@ -144,7 +182,7 @@ if __name__ == "__main__":
 
     print(f"Geocoding {df.shape[0]} rows of data...")
     geocoded_cols = df.apply(
-        lambda row: query_funcs.geocode_row(
+        lambda row: geocode.query_funcs.geocode_row(
             address=row[c_args.address], iso=row[c_args.iso],
             gm_key=c_args.keygm, gn_key=c_args.geonames,
             execute_names=execute_apps, results_per_app=c_args.resultspersource,
