@@ -98,7 +98,7 @@ if __name__ == "__main__":
                         help="The full filepath of the output Excel or CSV file")
     parser.add_argument("-a", "--address", type=str, default="for_geocoding",
                         help="The name of the address field to geocode")
-    parser.add_argument("-s", "--iso", type=str,
+    parser.add_argument("-s", "--iso", type=str, default=None,
                         help="The name of the file's ISO2 field (if any)")
     parser.add_argument("-e", "--encoding", type=str, default='detect',
                         help="Character encoding for the input file")
@@ -145,7 +145,8 @@ if __name__ == "__main__":
     print(f"Geocoding {df.shape[0]} rows of data...")
     geocoded_cols = df.apply(
         lambda row: query_funcs.geocode_row(
-            address=row[c_args.address], iso=row[c_args.iso],
+            address=row[c_args.address],
+            iso=None if c_args.iso is None else row[c_args.iso],
             gm_key=c_args.keygm, gn_key=c_args.geonames,
             execute_names=execute_apps, results_per_app=c_args.resultspersource,
             max_buffer=c_args.buffer

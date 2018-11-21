@@ -16,7 +16,7 @@ import pandas as pd
 import requests
 import xmltodict
 from haversine import haversine
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 
 
 ################################################################################
@@ -466,7 +466,7 @@ class GNInterface(WebInterface):
                         source        = 'GN'
                     )
                 )
-        except ValueError:
+        except (ValueError, KeyError) as e:
             pass
 
 
@@ -487,7 +487,12 @@ class FuzzyGInterface(WebInterface):
         output_dict = xmltodict.parse(self.output.text)
         if output_dict['fuzzyg']['response']['results'] is not None:
             response_list = output_dict['fuzzyg']['response']['results']['result']
-            num_locs = min([ len(response_list), self.n_results ])
+            if isinstance(response_list, OrderedDict):
+                # There is only one result
+                num_locs = 1
+                response_list = [response_list]
+            else:
+                num_locs = min([ len(response_list), self.n_results ])
             for i in range(0, num_locs):
                 loc_dict = response_list[i]
                 self.location_results.append(
