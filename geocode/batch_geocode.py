@@ -101,7 +101,7 @@ def geocode_from_flask(infile, outfile, keygm, geonames, iso, encoding, address,
         df, encoding = read_to_pandas(infile, encoding)
         # Geocode Rows of Data
         geocoded_cols = df.apply(
-            lambda row: geocode.query_funcs.geocode_row(
+            lambda row: query_funcs.geocode_row(
                 address=row[address], iso=row[iso],
                 gm_key=keygm, gn_key=geonames,
                 execute_names=execute_apps, results_per_app=resultspersource,
