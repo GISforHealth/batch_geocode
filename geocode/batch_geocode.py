@@ -16,7 +16,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from encodings.aliases import aliases
-import query_funcs
+from batch_geocode import query_funcs
 
 
 def read_to_pandas(fp, encoding='detect'):
