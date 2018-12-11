@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 from encodings.aliases import aliases
 from geocode import query_funcs
+from tqdm import tqdm
 
 
 def read_to_pandas(fp, encoding='detect'):
@@ -77,35 +78,28 @@ def rearrange_fields(gc_df):
 
 
 def geocode_from_flask(infile, outfile, keygm, geonames, iso, encoding, address,
-                       usetools, resultspersource, buffer):
+                       usetools, resultspersource, geo_buffer):
         """Create a function that can be called from flask routes.py that wraps the
         whole batch_geocode process."""
 
-        # Process the optional input from flask
-        if usetools is "":
-            usetools = 'GM,OSM,GN,FG'
-        if encoding is "":
-            encoding = 'detect'
-        if resultspersource is "":
-            resultspersource = 2
-        else:
-            resultspersource = int(resultspersource)
-        if buffer is "":
-            buffer = 15
-        else:
-            buffer = float(buffer)
+        # Set all optional arguments to None if they are currently empty
+        # This will cause `geocode_row()` to run using defaults
+        usetools = usetools or None
+        encoding = encoding or None
+        resultspersource = resultspersource or None
+        geo_buffer = geo_buffer or None
 
-        # Get the web geocoding tools as a list rather than a comma-separated string
-        execute_apps = [i.upper() for i in usetools.split(',')]
         # Reading input file
         df, encoding = read_to_pandas(infile, encoding)
+        # Initialize progress bar for pandas
+        tqdm.pandas()
         # Geocode Rows of Data
-        geocoded_cols = df.apply(
+        geocoded_cols = df.progress_apply(
             lambda row: query_funcs.geocode_row(
                 address=row[address], iso=row[iso],
                 gm_key=keygm, gn_key=geonames,
-                execute_names=execute_apps, results_per_app=resultspersource,
-                max_buffer=buffer
+                execute_names=usetools, results_per_app=resultspersource,
+                max_buffer=geo_buffer
             ),
             axis=1
         )
@@ -181,7 +175,10 @@ if __name__ == "__main__":
     df, encoding = read_to_pandas(c_args.infile, c_args.encoding)
 
     print(f"Geocoding {df.shape[0]} rows of data...")
-    geocoded_cols = df.apply(
+    # Initialize progress bar for pandas
+    tqdm.pandas()
+    # Geocode Rows of Data
+    geocoded_cols = df.progress_apply(
         lambda row: query_funcs.geocode_row(
             address=row[c_args.address],
             iso=None if c_args.iso is None else row[c_args.iso],
