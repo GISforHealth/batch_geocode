@@ -48,10 +48,9 @@ def geocode_row(address, iso=None, gm_key=None, gn_key=None, execute_names=None,
             to the Google Maps geocoding web tool.
         gn_key (str, optional): Activated GeoNames username passed to the 
             Geonames web tool.
-        execute_names (list, optional): List of two-character inputs 
-            representing web geocoding tools to use. Valid options include 
-            "GM" (Google Maps), "OSM" (OpenStreetMap), "GN" (GeoNames), and "FG"
-            (FuzzyG).
+        execute_names (list, optional): List of string inputs representing web 
+            geocoding tools to use. Valid options include "GM" (Google Maps), 
+            "OSM" (OpenStreetMap), "GN" (GeoNames), and "FG" (FuzzyG).
         results_per_app (int, optional): How many results should be returned 
             from each geocoding application?
         max_buffer (numeric, optional): The maximum acceptable "buffer size" 
