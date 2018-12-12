@@ -28,7 +28,9 @@ class VettingData(object):
             'geo_cols_prevet' : None,
             'geo_cols_postvet' : None
         }
+        self.format_in_data()
         self.out_fp = None # To be defined in `save_vetted_data()`
+
 
     def load_data(self):
         '''Load input file as a dataframe'''
@@ -66,7 +68,7 @@ class VettingData(object):
         self.formatted_data['geo_cols_prevet'] = gc_data.copy()
         self.formatted_data['meta_cols'] = meta_data.copy()
 
-    def return_vetting_data_as_json(self):
+    def get_vetting_data_as_json(self):
         '''Return the input data in JSON format'''
         return self.formatted_data['geo_cols_prevet'].to_json(orient='index')
 
