@@ -31,7 +31,6 @@ class VettingData(object):
         self.format_in_data()
         self.out_fp = None # To be defined in `save_vetted_data()`
 
-
     def load_data(self):
         '''Load input file as a dataframe'''
         in_df = read_to_pandas(fp=self.fp, encoding=self.encoding)
@@ -99,3 +98,4 @@ class VettingData(object):
         )
         write_pandas(df=full_data, fp=self.out_fp, encoding=self.encoding)
         print(f"Data saved successfully to {self.out_fp}.")
+    
