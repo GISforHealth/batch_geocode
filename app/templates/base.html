@@ -1,21 +1,32 @@
 <html>
 	<head>
-		{% if title %}
-		<title>{{ title }} - Batch_geocoding</title>
-		{% else %}
-		<title>Welcome to Batch_geocoding</title>
-		{% endif %}
+        {% block scripts %}{% endblock %}
+        {% if title %}
+            <title>{{ title }} - Batch Geocoding</title>
+        {% else %}
+            <title>Batch Geocoding</title>
+        {% endif %}
 	</head>
 	<body>
+        {% if title %}
+            <h1>Batch Geocode: {{ title }}</h1>
+        {% else %}
+            <h1>Batch Geocode</h1>
+        {% endif %}
+        <div>
+            <a href='/index'>Geocode Data</a>&nbsp;
+            <a href='/vet'>Vet Results</a>
+        </div>
+        <hr>
 		{% with messages = get_flashed_messages() %}
         	{% if messages %}
         	<ul>
-			{% for message in messages %}
-			<li>{{ message }}</li>
-			{% endfor %}
-		</ul>
-        	{% endif %}
-        	{% endwith %}
+	   	       	{% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+    	{% endwith %}
 		{% block content %}{% endblock %}
 	</body>
 </html>

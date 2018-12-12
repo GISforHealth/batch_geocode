@@ -1,8 +1,9 @@
 
 {% extends "base.html" %}
 
+{% block scripts %}{% endblock %}
+
 {% block content %}
-    <h1>Vet Results</h1>
     <form action="{{url_for('vet') }}" method="post" novalidate>
         {{ form.hidden_tag() }}
         <!-- Iterate through all form fields -->
