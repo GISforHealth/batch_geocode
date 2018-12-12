@@ -42,15 +42,25 @@ def index():
 @app.route('/vet', methods=['GET'])
 def vet_results():
     # Instantiate form to get input filepath
-    form = VetForm()
-    if form.validate_on_submit():
+    load_form = VetLoadForm()
+    save_form = VetSaveForm()
+    # To do when the first (input data) form is submitted
+    if load_form.validate_on_submit():
         # Load input data as JSON object and pass to application
-        vetting_data = VettingData(fp, encoding, address_col, iso_col)
+        vetting_data = VettingData(
+            fp = load_form.infile.data, 
+            encoding = load_form.encoding.data or 'detect', 
+            address_col = load_form.address.data, 
+            iso_col = load_form.iso.data or None
+        )
         df_json = vetting_data.get_vetting_data_as_json()
-        # Send to web page as JSON
-
-        # Reload page
-        return render_template('vet.html', title='Vetting', form=form)
+        # Reload page, including new JSON data in the page
+        return render_template('vet.html', title='Vetting', 
+                               form=save_form, vet_json=df_json)
+    # To do when the second (save vetted data) form is submitted
+    if save_vetting_form.validate_on_submit():
+        # TODO: Get the transformed JSON data from the page
+        # TODO: Save the transformed JSON data using the submitted filepath
+        pass
     # Start application for the first time
-    return render_template('vet.html', title='Vetting', form=form)
-    
+    return render_template('vet.html', title='Vetting', form=load_form, vet_json=[])
