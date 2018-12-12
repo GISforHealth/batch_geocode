@@ -23,9 +23,12 @@ class GeocodeForm(FlaskForm):
     submit = SubmitField('Geocode')
 
 class VetLoadForm(FlaskForm):
-    infile = StringField('Geocoded file for vetting:', validators=[DataRequired()])
+    infile = StringField(
+        'Geocoded file for vetting (<i>required</i>)', 
+        validators=[DataRequired()]
+    )
     address = StringField(
-        'Address Field (Required)', 
+        'Address Field (<i>required</i>)', 
         validators=[DataRequired()], 
         default='address'
     )
@@ -34,6 +37,9 @@ class VetLoadForm(FlaskForm):
     submit = SubmitField('Load geocoded data')
 
 class VetSaveForm(FlaskForm):
-    outfile = StringField('Save file to path:', validators=[DataRequired()])
+    outfile = StringField(
+        'Save file to path (<i>required</i>)', 
+        validators=[DataRequired()]
+    )
     submit = SubmitField('Save vetted data')
 
