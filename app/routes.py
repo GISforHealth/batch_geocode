@@ -1,7 +1,7 @@
 from flask import render_template, request, flash, Response
 from app import app
-from app.forms import GeocodeForm, VetForm
-from geocode import batch_geocode, vet
+from app.forms import GeocodeForm, VetLoadForm, VetSaveForm
+from geocode import batch_geocode, vet_geocode
 import time
 
 @app.route('/')
@@ -39,28 +39,31 @@ def index():
     return render_template('index.html', title='Home', form=form)
     
 
-@app.route('/vet', methods=['GET'])
-def vet_results():
+@app.route('/vet', methods=['GET','POST'])
+def vet():
     # Instantiate form to get input filepath
     load_form = VetLoadForm()
     save_form = VetSaveForm()
     # To do when the first (input data) form is submitted
     if load_form.validate_on_submit():
         # Load input data as JSON object and pass to application
-        vetting_data = VettingData(
+        vetting_data = vet_geocode.VettingData(
             fp = load_form.infile.data, 
             encoding = load_form.encoding.data or 'detect', 
             address_col = load_form.address.data, 
             iso_col = load_form.iso.data or None
         )
         df_json = vetting_data.get_vetting_data_as_json()
+        flash(df_json)
         # Reload page, including new JSON data in the page
         return render_template('vet.html', title='Vetting', 
                                form=save_form, vet_json=df_json)
     # To do when the second (save vetted data) form is submitted
-    if save_vetting_form.validate_on_submit():
+    if save_form.validate_on_submit():
         # TODO: Get the transformed JSON data from the page
         # TODO: Save the transformed JSON data using the submitted filepath
-        pass
+        flash("Data saved successfully!!")
+        return render_template('vet.html', title='Vetting', 
+                               form=save_form, vet_json=[])
     # Start application for the first time
     return render_template('vet.html', title='Vetting', form=load_form, vet_json=[])
