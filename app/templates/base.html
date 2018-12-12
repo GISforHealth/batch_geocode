@@ -1,6 +1,11 @@
 <html>
 	<head>
+        <!-- Links to external CSS and JS -->
+        <link rel="stylesheet" href="{{url_for('static', filename='base.css')}}">
+
+        <!-- Block for page-specific CSS and JS -->
         {% block scripts %}{% endblock %}
+
         {% if title %}
             <title>{{ title }} - Batch Geocoding</title>
         {% else %}
@@ -27,6 +32,7 @@
             </ul>
             {% endif %}
     	{% endwith %}
+        <!-- Block for all other page content -->
 		{% block content %}{% endblock %}
 	</body>
 </html>
