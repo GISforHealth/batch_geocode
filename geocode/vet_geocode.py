@@ -64,7 +64,7 @@ class VettingData(object):
         gc_data['address'] = gc_data['__index'].apply(str).str.cat(
             gc_data['address'], sep=': '
         )
-        gc_data.set_index(keys='address')
+        gc_data = gc_data.set_index(keys='address')
         # Add to the 'formatted_data' attribute
         self.formatted_data['geo_cols_prevet'] = gc_data.copy()
         self.formatted_data['meta_cols'] = meta_data.copy()
