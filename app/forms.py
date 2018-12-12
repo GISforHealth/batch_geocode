@@ -22,6 +22,18 @@ class GeocodeForm(FlaskForm):
     use_fg = BooleanField('Query FuzzyG?')
     submit = SubmitField('Geocode')
 
-class VetForm(FlaskForm):
-    infile = StringField('File for vetting:', validators=[DataRequired()])
-    
+class VetLoadForm(FlaskForm):
+    infile = StringField('Geocoded file for vetting:', validators=[DataRequired()])
+    address = StringField(
+        'Address Field (Required)', 
+        validators=[DataRequired()], 
+        default='address'
+    )
+    iso = StringField('ISO2 Field', default='iso2')
+    encoding = StringField('Encoding', default='detect')
+    submit = SubmitField('Load geocoded data')
+
+class VetSaveForm(FlaskForm):
+    outfile = StringField('Save file to path:', validators=[DataRequired()])
+    submit = SubmitField('Save vetted data')
+
