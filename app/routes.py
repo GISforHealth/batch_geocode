@@ -1,32 +1,69 @@
-from flask import render_template, request, flash
+from flask import render_template, request, flash, Response
 from app import app
-from app.forms import SubmitForm
-from geocode import batch_geocode
+from app.forms import GeocodeForm, VetLoadForm, VetSaveForm
+from geocode import batch_geocode, vet_geocode
+import time
 
 @app.route('/')
 @app.route('/index', methods=['GET','POST'])
 def index():
-	form = SubmitForm()
-	if request.method == 'POST':
-		if form.validate_on_submit():
-			infile = request.form['infile']
-			outfile = request.form['outfile']
-			address = request.form['address']
-			iso = request.form['iso']
-			key = request.form['key']
-			geonames = request.form['geonames']
-			usetools = request.form['usetools']
-			encoding = request.form['encoding']
-			resultsper = request.form['resultsper']
-			buffer = request.form['buffer']
-			batch_geocode.geocode_from_flask(infile=infile, iso=iso, outfile=outfile, keygm=key, geonames=geonames,
-											 address=address, usetools=usetools, encoding=encoding,
-											 resultspersource=resultsper, buffer=buffer)
-			flash('Your output file for input file, {}, usingtools {}, with {} results per source, and a buffer of {} '
-				  'is now ready to view at {}'.format(form.infile.data, form.usetools.data, form.resultsper.data,
-														form.buffer.data, form.outfile.data))
-			return render_template('index.html', title='Home', form=form)
-		else:
-			flash('Need to enter all required fields')
-	return render_template('index.html', title='Home', form=form)
+    form = GeocodeForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            # Define the string of tools to use
+            usetools = list()
+            if form.use_gm.data: usetools.append('GM')
+            if form.use_osm.data: usetools.append('OSM')
+            if form.use_gn.data: usetools.append('GN')
+            if form.use_fg.data: usetools.append('FG')
 
+            batch_geocode.geocode_from_flask(
+                infile=form.infile.data,
+                outfile=form.outfile.data, 
+                encoding=form.encoding.data, 
+                address=form.address.data,
+                iso=form.iso.data,
+                keygm=form.key.data, 
+                geonames=form.geonames.data,
+                usetools=usetools, 
+                resultspersource=form.resultsper.data, 
+                geo_buffer=form.geo_buffer.data
+            )
+            flash(f"""Your output file for input file, {form.infile.data}, using 
+                      tools {usetools}, with {form.resultsper.data} 
+                      results per source, and a buffer of {form.geo_buffer.data} is 
+                      now ready to view at {form.outfile.data}.""")
+            return render_template('index.html', title='Home', form=form)
+        else:
+            flash('Need to enter all required fields')
+    return render_template('index.html', title='Home', form=form)
+    
+
+@app.route('/vet', methods=['GET','POST'])
+def vet():
+    # Instantiate form to get input filepath
+    load_form = VetLoadForm()
+    save_form = VetSaveForm()
+    # To do when the first (input data) form is submitted
+    if load_form.validate_on_submit():
+        # Load input data as JSON object and pass to application
+        vetting_data = vet_geocode.VettingData(
+            fp = load_form.infile.data, 
+            encoding = load_form.encoding.data or 'detect', 
+            address_col = load_form.address.data, 
+            iso_col = load_form.iso.data or None
+        )
+        df_json = vetting_data.get_vetting_data_as_json()
+        flash(df_json)
+        # Reload page, including new JSON data in the page
+        return render_template('vet.html', title='Vetting', 
+                               form=save_form, vet_json=df_json)
+    # To do when the second (save vetted data) form is submitted
+    if save_form.validate_on_submit():
+        # TODO: Get the transformed JSON data from the page
+        # TODO: Save the transformed JSON data using the submitted filepath
+        flash("Data saved successfully!!")
+        return render_template('vet.html', title='Vetting', 
+                               form=save_form, vet_json=[])
+    # Start application for the first time
+    return render_template('vet.html', title='Vetting', form=load_form, vet_json=[])

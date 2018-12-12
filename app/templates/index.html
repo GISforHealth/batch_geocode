@@ -1,58 +1,57 @@
 
 {% extends "base.html" %}
 
+{% block scripts %}{% endblock %}
+
 {% block content %}
-	<h1>Batch Geocode</h1>
-	<form action="{{url_for('index') }}" method="post" novalidate>
-		{{ form.hidden_tag() }}
-		<h3>Required Fields:</h3>
-		<p>
-			{{ form.infile.label }} <br>
-			{{ form.infile(size=32) }} <br>
-			{% for error in form.infile.errors %}
-			<span style="color: red;">[{{ error }}]</span>
-			{% endfor %}
-		</p>
-		<p>
-			{{ form.outfile.label }} <br>
-			{{ form.outfile(size=32) }} <br>
-			{% for error in form.outfile.errors %}
-			<span style="color: red;">[{{ error }}]</span>
-			{% endfor %}
-		</p>
-		<p>
-			{{ form.address.label }} <br>
-			{{ form.address(size=32) }} <br>
-			{% for error in form.address.errors %}
-			<span style="color: red;">[{{ error }}]</span>
-			{% endfor %}
-		</p>
-		<p>
-			{{ form.iso.label }} <br>
-			{{ form.iso(size=32) }} <br>
-			{% for error in form.iso.errors %}
-			<span style="color: red;">[{{ error }}]</span>
-			{% endfor %}
-		</p>
-		<p>
-			{{ form.key.label }} <br>
-			{{ form.key(size=32) }} <br>
-			{% for error in form.key.errors %}
-			<span style="color: red;">[{{ error }}]</span>
-			{% endfor %}
-		</p>
-		<p>
-			{{ form.geonames.label }} <br>
-			{{ form.geonames(size=32) }} <br>
-			{% for error in form.geonames.errors %}
-			<span style="color: red;">[{{ error }}]</span>
-			{% endfor %}
-		</p>
-		<h3>Optional Fields:</h3>
-		<p>{{ form.usetools.label }}<br> {{ form.usetools(size=32) }}</p>
-		<p>{{ form.encoding.label }}<br> {{ form.encoding(size=32) }}</p>
-		<p>{{ form.resultsper.label }}<br> {{ form.resultsper(size=32) }}</p>
-		<p>{{ form.buffer.label }}<br> {{ form.buffer(size=32) }}</p>
-		<p>{{ form.submit() }}</p>
-	</form>
+    <form action="{{url_for('index') }}" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <h3>Files and Encoding:</h3>
+        {% for field in [form.infile, form.outfile, form.encoding] %}
+            <p>
+                {{ field.label }} <br>
+                {{ field(size=32) }} <br>
+                {% for error in field.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>        
+        {% endfor %}
+        <h3>Fields:</h3>
+        {% for field in [form.address, form.iso] %}
+            <p>
+                {{ field.label }} <br>
+                {{ field(size=32) }} <br>
+                {% for error in field.errors %}
+                    <span style="color: red;">[{{ error }}]</span>
+                {% endfor %}
+            </p>        
+        {% endfor %}
+        <h3>Geocoding Services and Keys:</h3>
+        <p>
+            {{ form.use_gm.label }} {{ form.use_gm(checked=False) }}<br>
+            {{ form.use_osm.label }} {{ form.use_osm(checked=True) }}<br>
+            {{ form.use_gn.label }} {{ form.use_gn(checked=True) }}<br>
+            {{ form.use_fg.label }} {{ form.use_fg(checked=True) }}<br>
+        </p>
+        <p>
+            {{ form.key.label }} <br>
+            {{ form.key(size=32) }} <br>
+        </p>
+        <p>
+            {{ form.geonames.label }} <br>
+            {{ form.geonames(size=32) }} <br>
+        </p>
+        <h3>Geocoding Options:</h3>
+        <p>
+            {{ form.resultsper.label }}<br> 
+            {{ form.resultsper(size=32) }}
+        </p>
+        <p>
+            {{ form.geo_buffer.label }}<br> 
+            {{ form.geo_buffer(size=32) }}
+        </p>
+        <p>
+            {{ form.submit() }}
+        </p>
+    </form>
 {% endblock %}

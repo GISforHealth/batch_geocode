@@ -1,0 +1,25 @@
+
+{% extends "base.html" %}
+
+{% block scripts %}{% endblock %}
+
+{% block content %}
+    <form action="{{url_for('vet') }}" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <!-- Iterate through all form fields -->
+        {% for field in form %}
+            {% if field.type not in ["SubmitField","CSRFTokenField"] %}
+                <p>
+                    {{ field.label }} <br>
+                    {{ field(size=32) }} <br>
+                    {% for error in field.errors %}
+                        <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>
+            {% endif %} 
+        {% endfor %}
+        <p>
+            {{ form.submit() }}
+        </p>
+    </form>
+{% endblock %}
