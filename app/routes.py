@@ -1,13 +1,13 @@
 from flask import render_template, request, flash, Response
 from app import app
-from app.forms import SubmitForm
-from geocode import batch_geocode
+from app.forms import GeocodeForm, VetForm
+from geocode import batch_geocode, vet
 import time
 
 @app.route('/')
 @app.route('/index', methods=['GET','POST'])
 def index():
-    form = SubmitForm()
+    form = GeocodeForm()
     if request.method == 'POST':
         if form.validate_on_submit():
             # Define the string of tools to use
@@ -37,4 +37,20 @@ def index():
         else:
             flash('Need to enter all required fields')
     return render_template('index.html', title='Home', form=form)
+    
+
+@app.route('/vet', methods=['GET'])
+def vet_results():
+    # Instantiate form to get input filepath
+    form = VetForm()
+    if form.validate_on_submit():
+        # Load input data as JSON object and pass to application
+        vetting_data = VettingData(fp, encoding, address_col, iso_col)
+        df_json = vetting_data.get_vetting_data_as_json()
+        # Send to web page as JSON
+
+        # Reload page
+        return render_template('vet.html', title='Vetting', form=form)
+    # Start application for the first time
+    return render_template('vet.html', title='Vetting', form=form)
     
