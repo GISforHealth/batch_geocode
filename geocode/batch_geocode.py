@@ -16,7 +16,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from geocode import query_funcs
-from geocode.utilities import read_to_pandas, write_pandas
+from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes
 from tqdm import tqdm
 
 
@@ -34,7 +34,7 @@ def rearrange_fields(gc_df):
     if 'best' not in prefixes:
         prefixes = ['best'] + prefixes
     # Keep only the following fields from the results of each geocoding tool
-    suffixes = ['name','type','long','lat','buffer']
+    suffixes = get_geocoding_suffixes()
     all_cols = [f'{p}_{s}' for p in prefixes for s in suffixes]
     return gc_df.reindex(labels=all_cols, axis='columns')
 
