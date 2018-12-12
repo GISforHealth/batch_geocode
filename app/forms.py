@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import BooleanField, FloatField, IntegerField, StringField, SubmitField
 from wtforms.validators import DataRequired, Optional
 
-class SubmitForm(FlaskForm):
+class GeocodeForm(FlaskForm):
     infile = StringField('Infile (<i>required</i>)', validators=[DataRequired()])
     outfile = StringField('Outfile (<i>required</i>)', validators=[DataRequired()])
     address = StringField(
@@ -21,3 +21,7 @@ class SubmitForm(FlaskForm):
     use_gn = BooleanField('Query Geonames?')
     use_fg = BooleanField('Query FuzzyG?')
     submit = SubmitField('Geocode')
+
+class VetForm(FlaskForm):
+    infile = StringField('File for vetting:', validators=[DataRequired()])
+    
