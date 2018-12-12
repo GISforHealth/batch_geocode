@@ -33,9 +33,9 @@ class VettingData(object):
 
     def load_data(self):
         '''Load input file as a dataframe'''
-        in_df = read_to_pandas(fp=self.fp, encoding=self.encoding)
+        in_df, self.encoding = read_to_pandas(fp=self.in_fp, encoding=self.encoding)
         # Create a unique index field
-        in_df['__index'] = range( 0, len(df) )
+        in_df['__index'] = range( 0, in_df.shape[0] )
         return in_df
 
     def format_in_data(self):
@@ -43,16 +43,16 @@ class VettingData(object):
         results and the geocoding results
         '''
         keep_suffixes = get_geocoding_suffixes()
-        gc_fields = [c for c in raw_df.columns
+        gc_fields = [c for c in self.raw_data.columns
                        if ( any([c.endswith(s) for s in keep_suffixes]) )
                        or (c==self.address_col)
                        or (self.iso_col is not None and c==self.iso_col)
                        or (c=='__index')]
-        meta_fields = [c for c in raw_df.columns 
+        meta_fields = [c for c in self.raw_data.columns 
                          if (c not in gc_fields) 
                          or (c=='index')]
-        gc_data = self.raw_data[:,gc_fields]
-        meta_data = self.raw_data[:,meta_fields]
+        gc_data = self.raw_data.loc[:,gc_fields]
+        meta_data = self.raw_data.loc[:,meta_fields]
         # Change the geocoding address and iso columns to standard names
         if self.iso_col is None:
             gc_data['iso2'] = ''
@@ -61,7 +61,9 @@ class VettingData(object):
         if self.address_col != 'address':
             gc_data = gc_data.rename({self.address_col:'address'}, axis=1)
         # Update the address field so that it includes the index
-        gc_data['address'] = gc_data['__index'].str.cat(gc_data['address'], sep=': ')
+        gc_data['address'] = gc_data['__index'].apply(str).str.cat(
+            gc_data['address'], sep=': '
+        )
         gc_data.set_index(keys='address')
         # Add to the 'formatted_data' attribute
         self.formatted_data['geo_cols_prevet'] = gc_data.copy()
