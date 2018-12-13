@@ -1,7 +1,8 @@
-from flask import render_template, request, flash, Response
+import json
+from flask import flash, render_template, request, Response
 from app import app
 from app.forms import GeocodeForm, VetLoadForm, VetSaveForm
-from geocode import batch_geocode, vet_geocode
+from geocode import batch_geocode, vet_geocode, utilities
 import time
 
 @app.route('/')
@@ -44,6 +45,10 @@ def vet():
     # Instantiate form to get input filepath
     load_form = VetLoadForm()
     save_form = VetSaveForm()
+    # Instantiate an object that will be passed to the page definining 
+    #  source types and source suffixes
+    struct = utilities.get_geocoding_suffixes()
+
     # To do when the first (input data) form is submitted
     if load_form.validate_on_submit():
         # Load input data as JSON object and pass to application
@@ -54,16 +59,17 @@ def vet():
             iso_col = load_form.iso.data or None
         )
         df_json = vetting_data.get_vetting_data_as_json()
-        flash(df_json)
         # Reload page, including new JSON data in the page
-        return render_template('vet.html', title='Vetting', 
-                               form=save_form, vet_json=df_json)
+        return render_template('vet.html', title='Vetting', form=save_form, 
+                               vet_json=df_json, show_map=1, result_struct=struct)
+
     # To do when the second (save vetted data) form is submitted
     if save_form.validate_on_submit():
         # TODO: Get the transformed JSON data from the page
         # TODO: Save the transformed JSON data using the submitted filepath
         flash("Data saved successfully!!")
-        return render_template('vet.html', title='Vetting', 
-                               form=save_form, vet_json=[])
+        return render_template('vet.html', title='Vetting', form=save_form, 
+                               vet_json=[], show_map=0, result_struct=[])
     # Start application for the first time
-    return render_template('vet.html', title='Vetting', form=load_form, vet_json=[])
+    return render_template('vet.html', title='Vetting', form=load_form, 
+                           vet_json=[], show_map=0, result_struct=struct)
