@@ -51,6 +51,14 @@ def write_pandas(df, fp, encoding):
     return None
 
 
+def get_geocoding_sources():
+    '''Store a list of geocoding source types and related prefixes'''
+    sources = {
+        'Google Maps':'GM','OpenStreetMaps':'OSM','GeoNames':'GN','FuzzyG':'FG'
+    }
+    return sources
+
+
 def get_geocoding_suffixes():
     """Store a list of suffixes that should be included in geocoding fields"""
     suffixes_list = ['name','type','lat','long','buffer']
