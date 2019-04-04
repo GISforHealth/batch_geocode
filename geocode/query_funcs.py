@@ -472,7 +472,7 @@ class GNInterface(WebInterface):
 class FuzzyGInterface(WebInterface):
     """This is the specific web interface used for the FuzzyG geocoding tool."""
     def build_query(self):
-        self.request_url = 'http://dma.jrc.it/fuzzygall/xml/'
+        self.request_url = 'http://dma.jrc.it/fuzzyg/xml/'
         self.request_params = {
             'fuzzy' : '0',
             'start' : '0',

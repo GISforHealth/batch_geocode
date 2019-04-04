@@ -6,7 +6,7 @@ Created on Fri Mar 17 10:37:07 2017
 
 This file defines the command line interface for the automated geocoding 
 application, which allows the user to geocode many locations in succession using
-the the Google Maps, OpenStreetMaps, GeoNames, and/or FuzzyG APIs. For more
+the the Google Maps, OpenStreetMaps, and/or GeoNames. For more
 information about how to use this tool, please see the repository README.
 
 Written in Python 3.6
@@ -101,13 +101,13 @@ if __name__ == "__main__":
     parser.add_argument("-g", "--geonames", type=str, 
                         help="Activated Geonames username")
     parser.add_argument(
-        "-u", "--usetools", type=str, default='GM,OSM,GN,FG', 
+        "-u", "--usetools", type=str, default='GM,OSM,GN', 
         help="""Comma-separated string listing geocoding web tools to query. 
              Valid items in this list include GM (Google Maps), OSM 
-             (OpenStreetMap), GN (GeoNames), and FG (FuzzyG). Leaving this 
+             (OpenStreetMap), andGN (GeoNames). Leaving this 
              argument blank will query all available tools as a default 
              UNLESS the Google Maps key and/or GeoNames username are blank. 
-             Example valid arguments: '-u GN'; '-u GN,GM,FG'; '-u OSM,GM,FG'
+             Example valid arguments: '-u GN'; '-u GN,GM'; '-u OSM,GM'
              """
     )
     parser.add_argument(

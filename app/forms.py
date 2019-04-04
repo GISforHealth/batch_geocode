@@ -19,7 +19,6 @@ class GeocodeForm(FlaskForm):
     use_gm = BooleanField('Query Google Maps?')
     use_osm = BooleanField('Query OpenStreetMap?')
     use_gn = BooleanField('Query Geonames?')
-    use_fg = BooleanField('Query FuzzyG?')
     submit = SubmitField('Geocode')
 
 class VetLoadForm(FlaskForm):

@@ -178,6 +178,9 @@
                 fillDropDownMenu('#gc_result', gc_keys);
                 // When a value is selected, use it to create a map
                 $('#gc_result').change(function(){
+                    if($("#disp_results").length){
+                        document.getElementById("disp_results").innerHTML = "";
+                    }
                     // Get the selection and use it to populate a list of results
                     var gc_selection = $('#gc_result option:selected').val();
                     var gc_results = parseResultsFromObject(gc_json[gc_selection]);
@@ -186,7 +189,8 @@
                     addResultDetails(
                         gc_selection, gc_json[gc_selection]['iso2'], gc_results, 
                         '#disp_results'
-                    );
+                    )
+                    console.log(gc_results);
                 });
             }
         })

@@ -16,7 +16,6 @@ def index():
             if form.use_gm.data: usetools.append('GM')
             if form.use_osm.data: usetools.append('OSM')
             if form.use_gn.data: usetools.append('GN')
-            if form.use_fg.data: usetools.append('FG')
 
             batch_geocode.geocode_from_flask(
                 infile=form.infile.data,
