@@ -15,68 +15,109 @@
     >
 
     <script>
-        // *** FUNCTION DEFINITIONS ***
-        // Make a Leaflet map, with no layers and an OSM background
-        function makeMap(map_id){
-            var TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-            var MB_ATTR = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
-            var mymap = L.map(map_id).setView([0, 0], 1);
-            L.tileLayer(TILE_URL, {attribution: MB_ATTR}).addTo(mymap);
-            return mymap
-        }
+// *** FUNCTION DEFINITIONS ***
+// Make a Leaflet map, with no layers and an OSM background
+function makeMap(map_id){
+    var TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+    var MB_ATTR = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
+    var mymap = L.map(map_id).setView([0, 0], 1);
+    L.tileLayer(TILE_URL, {attribution: MB_ATTR}).addTo(mymap);
+    return mymap
+}
 
-        // Add all keys from a Javascript object to an array (list)
-        function getKeysFromObject(obj){
-            var keys = [];
-            for(var k in obj) keys.push(k);
-            return(keys)
-        }
+// Add all keys from a Javascript object to an array (list)
+function getKeysFromObject(obj){
+    var keys = [];
+    for(var k in obj) keys.push(k);
+    return(keys)
+}
 
-        // Given the ID of a `<select>` object in the page and an array of 
-        //  values, fill the select object with the values.
-        function fillDropDownMenu(id, arr){
-            $(id).empty();
-            $(id).append($('<option disabled selected value> -- select an option -- </option>'));
-            $.each(arr, function(i, p){
-                $(id).append($('<option></option>').val(p).html(p));
-            });
-            // Enable the drop-down menu
-            $(id).removeAttr('disabled');            
-        }
+// Given the ID of a `<select>` object in the page and an array of 
+//  values, fill the select object with the values.
+function fillDropDownMenu(id, arr){
+    $(id).empty();
+    $(id).append($('<option disabled selected value> -- select an option -- </option>'));
+    $.each(arr, function(i, p){
+        $(id).append($('<option></option>').val(p).html(p));
+    });
+    // Enable the drop-down menu
+    $(id).removeAttr('disabled');            
+}
 
-        // Helper function to return only unique items from an array
-        function onlyUnique(value, index, self) { 
-           return self.indexOf(value) === index;
-        }
+// Helper function to return only unique items from an array
+function onlyUnique(value, index, self) { 
+   return self.indexOf(value) === index;
+}
 
-        // Given a vetting object from the geocoding tool, create a list of 
-        //  valid point+buffer results
-        function parseResultsFromObject(obj){
+// Helper function to sort items alphabetically by key
+function sortObjectByKey(obj){
+    var keys = Object.keys(obj).sort(function (a, b) {
+        return a.toLowerCase().localeCompare(b.toLowerCase());
+    });
+    var newObj = {};
+    for (i = 0; i < keys.length; i++){
+        var key = keys[i];
+        newObj[key] = obj[key];
+    };
+    return newObj;
+}
+
+// Class to store and update geocoding results
+// Translates between two formats of data: gc_condensed (the format as 
+//  passed in by Flask) and gc_long (reformatted to be more convenient
+//  for working with in Javascript)
+class GCResults {
+    constructor(json_object) {
+        // Instantiate the class using the JSON passed from Flask
+        this.gc_condensed = json_object;
+        // Long version used by the vetting code
+        this.gc_long = this.convertToLong(this.gc_condensed);
+        // List of common keys (search strings) between both objects
+        this.gc_keys = getKeysFromObject(this.gc_long);
+    }
+
+    // Create a list of valid point+buffer results for each geocoding
+    //  query in the overall results object
+    convertToLong(condensed_data) {
+        // Object that will store all results
+        var long_form = {};
+        // Get all geocoded string queries
+        var all_queries = getKeysFromObject(condensed_data);
+        // For each geocoding query, get all valid results
+        for(var q = 0; q < all_queries.length; q++){
+            var this_query = all_queries[q];
+            var query_obj = condensed_data[this_query];
             // Get the array of all object keys
-            var keys = getKeysFromObject(obj);
-            // Get the list of all geocoding results, which should all contain
+            var obj_keys = getKeysFromObject(query_obj);
+            // Get the list of individual results, which should all contain
             //  an underscore (but not two in a row)
-            var gc_results = keys.filter(k => k.includes("_") && !(k.includes("__")));
+            var gc_results = obj_keys.filter(
+                k => k.includes("_") && !(k.includes("__"))
+            );
             // Split into source types and suffixes
-            var prefixes = gc_results.map(function(r){ return r.split("_")[0] }).filter( onlyUnique );
-            var suffixes = gc_results.map(function(r){ return r.split("_")[1] }).filter( onlyUnique );
+            var prefixes = gc_results.map(
+                function(r){ return r.split("_")[0] }
+            ).filter( onlyUnique );
+            var suffixes = gc_results.map(
+                function(r){ return r.split("_")[1] }
+            ).filter( onlyUnique );
             // Attempt to create a new valid result for each prefix (source)
             var valid_results = {};
             for(var i = 0; i < prefixes.length; i++){
                 var pf = prefixes[i];
                 // If the object has non-null 'lat' and 'long' fields, it is valid
-                if( (pf.concat("_lat") in obj) && 
-                    (obj[pf.concat("_lat")] != null) &&
-                    (pf.concat("_long") in obj) && 
-                    (obj[pf.concat("_long")] != null) 
+                if( (pf.concat("_lat") in query_obj) && 
+                    (query_obj[pf.concat("_lat")] != null) &&
+                    (pf.concat("_long") in query_obj) && 
+                    (query_obj[pf.concat("_long")] != null) 
                     ){
                     // Create a new sub-object with all non-null values
                     var sub_object = {};
                     for(var j = 0; j < suffixes.length; j++){
                         var sf = suffixes[j];
                         var full_field = [pf, sf].join("_");
-                        if( obj[full_field]!=null ){
-                            sub_object[sf] = obj[full_field];
+                        if( query_obj[full_field]!=null ){
+                            sub_object[sf] = query_obj[full_field];
                         } else {
                             if(sf=='buffer') sub_object['buffer'] = 0;
                         };
@@ -85,111 +126,219 @@
                     valid_results[pf] = sub_object;
                 };
             };
-            return valid_results
-        }
+            // Populate the long-form object with all results from this source
+            long_form[this_query] = valid_results;
+        };
+        // Return the populated long-form object
+        return long_form;
+    }
 
-        // Given a set of valid objects, create leaflet markers and add them to
-        // the map
-        function addResultMarkers(gc_results, mymap, layer){
-            // Iterate through all results and create markers for each
-            var result_keys = getKeysFromObject(gc_results);
-            var markers = [];
-            // Create markers for all locations and circles for locations
-            //  with a buffer greater than 0
-            for(i=0; i < result_keys.length; i++){
-                var key = result_keys[i];
-                var marker = L.marker(
-                    L.latLng(
-                        {lat: gc_results[key]['lat'], lng: gc_results[key]['long']}
-                    ),
-                    { opacity:0.5 }
+    // Mark a given source for a given geocoding result as 'best'
+    markBest(query_name, source_name) {
+        // Get the results from that source
+        this.gc_long[query_name]['best'] = this.gc_long[query_name][source_name];
+        // Create a deep copy so we can reorder
+        var best_result = JSON.parse(JSON.stringify(
+            this.gc_long[query_name]['best']
+        ));
+        if( 'name' in best_result ){
+            best_result['name'] = best_result['name']+' (from '+source_name+')';
+        } else {
+            best_result['name'] = source_name;
+        };
+        // Add the best result back to the main object
+        this.gc_long[query_name]['best'] = best_result;
+        // Sort results alphabetically so that 'best' shows up first
+        this.gc_long[query_name] = sortObjectByKey(this.gc_long[query_name]);
+    }
+
+    // Update new sub-objects from the long-form dataset back into condensed form
+    updateCondensed(update_key = 'best'){
+        // Iterate through each valid result in the long-form object
+        var long_queries = getKeysFromObject(self.gc_long);
+        for(var i = 0; i < long_queries.length; i++){
+            var this_query = long_queries[i];
+            // Check if there is a 'best' object in the dataset
+            if (update_key in self.gc_long[this_query]){
+                // Remove selected attributes from the condensed object
+                var old_vals = getKeysFromObject(self.gc_condensed[this_query]).filter(
+                    k => k.includes(update_key + "_")
                 );
-                marker.bindTooltip(
-                    key, 
-                    {permanent:true, className:"tooltip", offset:[0, 0], opacity:0.75}
-                );
-                markers.push(marker);
-                // If the buffer is greater than 0, make a circle
-                if((gc_results[key]['buffer'] != null) && (gc_results[key]['buffer'] > 0)){
-                    var circle = L.circle(
-                        L.latLng(
-                            {lat: gc_results[key]['lat'], lng: gc_results[key]['long']}
-                        ),
-                        { 
-                            opacity: 0.4,
-                            color: 'blue',
-                            fillColor: 'blue',
-                            fillOpacity: 0.15,
-                            radius: gc_results[key]['buffer'] * 1000
-                        }
-                    );
-                    markers.push(circle);
+                for (j = 0; j < old_vals.length; j++){
+                    var remove_me = old_vals[j];
+                    self.gc_long[this_query][remove_me] = '';
+                };
+                // Add selected attributes back to the condensed object
+                var new_obj = self.gc_long[this_query][update_key];
+                var add_keys = getKeysFromObject(new_obj);
+                for(var k = 0; k < add_keys.length; k++){
+                    var add_key = add_keys[k];
+                    self.gc_condensed[this_query][update_key+'_'+add_key] = new_obj[add_key];
                 };
             };
-            // Add new markers
-            mymap.removeLayer(layer);
-            layer = L.layerGroup(markers);
-            mymap.addLayer(layer);
-            // Zoom to markers
-            var group = new L.featureGroup(markers)
-            mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
-        }
+        };
+    }
 
-        // Given a set of valid objects, populate a div with information about 
-        //   all valid objects
-        function addResultDetails(address, iso, gc_formatted, div_id){
-            // Add overall data about the address and ISO (if available)
-            $(div_id).append($('<h2></h2>').html(address));
-            if(iso != null){
-                 $(div_id).append($('<h3></h3>').html('Country: ' + iso));
-            };
-            // If there are no results, say so; otherwise, add each result
-            if( Object.keys(gc_formatted).length == 0){
-                $(div_id).append($('<p></p>').html('<i>No valid results returned.</i>'));
-            } else {
-                var valid_keys = getKeysFromObject(gc_formatted);
-                for(i = 0; i < valid_keys.length; i++){
-                    vk = valid_keys[i];
-                    $(div_id).append($('<h3></h3>').html(vk));
-                    var subkeys = getKeysFromObject(gc_formatted[vk]);
-                    for (j = 0; j < subkeys.length; j++){
-                        var sk = subkeys[j];
-                        $(div_id).append('<b>'+sk+'</b>: '+gc_formatted[vk][sk]+'<br>');
-                    };
-                };
-            };
-        }
+    // FUNCTIONS FOR ACCESSING CLASS ATTRIBUTES
+    getLongForm(){
+        return this.gc_long;
+    }
 
-        // *** LEAFLET SCRIPT EXECUTION BEGINS HERE ***
-        var show_map = $('#gc_json').data("trigger");
+    getCondensedForm(){
+        // Update the condensed version first
+        this.updateCondensed();
+        return this.gc_condensed;
+    }
 
-        $(function() {
-            if( show_map == 1 ){
-                // Create a map and add a blank layer object
-                var mymap = makeMap('leafmap');
-                var layer = L.layerGroup();
-                mymap.addLayer(layer);
-                // Parsing an 'over-stringified' string to JSON
-                // This seems to be the only safe way to retrieve JSON from a 
-                //  <meta> object
-                var gc_json = JSON.parse(JSON.parse( $('#gc_json').data("json") )); 
-                // Add keys of the object to the drop-down selection
-                var gc_keys = getKeysFromObject(gc_json);
-                fillDropDownMenu('#gc_result', gc_keys);
-                // When a value is selected, use it to create a map
-                $('#gc_result').change(function(){
-                    // Get the selection and use it to populate a list of results
-                    var gc_selection = $('#gc_result option:selected').val();
-                    var gc_results = parseResultsFromObject(gc_json[gc_selection]);
-                    // Use these results to populate points on a map
-                    addResultMarkers(gc_results, mymap, layer);
-                    addResultDetails(
-                        gc_selection, gc_json[gc_selection]['iso2'], gc_results, 
-                        '#disp_results'
-                    );
-                });
+    getKeys(){
+        return this.gc_keys;
+    }
+}
+
+
+// Given a set of valid objects, create leaflet markers and add them to
+// the map
+function addResultMarkers(gc_results, mymap, layer){
+    // Iterate through all results and create markers for each
+    var result_keys = getKeysFromObject(gc_results);
+    var markers = [];
+    // Create markers for all locations and circles for locations
+    //  with a buffer greater than 0
+    for(i=0; i < result_keys.length; i++){
+        var key = result_keys[i];
+        if (key == 'best'){
+            var direction = 'top';
+        } else {
+            var direction = 'left';
+        };
+        var marker = L.marker(
+            L.latLng(
+                {lat: gc_results[key]['lat'], lng: gc_results[key]['long']}
+            ),
+            { opacity:0.5 }
+        );
+        marker.bindTooltip(
+            key,
+            { permanent:true, className:"tooltip", offset:[0, 0], 
+              opacity:0.75, direction:direction
             }
-        })
+        );
+        markers.push(marker);
+        // If the buffer is greater than 0, make a circle
+        if((gc_results[key]['buffer'] != null) && (gc_results[key]['buffer'] > 0)){
+            var circle = L.circle(
+                L.latLng(
+                    {lat: gc_results[key]['lat'], lng: gc_results[key]['long']}
+                ),
+                { 
+                    opacity: 0.4,
+                    color: 'blue',
+                    fillColor: 'blue',
+                    fillOpacity: 0.15,
+                    radius: gc_results[key]['buffer'] * 1000
+                }
+            );
+            markers.push(circle);
+        };
+    };
+    // Add new markers
+    mymap.removeLayer(layer);
+    layer = L.layerGroup(markers);
+    mymap.addLayer(layer);
+    // Zoom to markers
+    var group = new L.featureGroup(markers)
+    mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
+}
+
+// Given a set of valid objects, populate a div with information about 
+//   all valid objects
+function addResultDetails(address, iso, gc_formatted, div_id){
+    // Add overall data about the address and ISO (if available)
+    $(div_id).html($('<h2></h2>').html(address));
+    if(iso != null){
+         $(div_id).append($('<h3></h3>').html('Country: ' + iso));
+    };
+    // If there are no results, say so; otherwise, add each result
+    if( Object.keys(gc_formatted).length == 0){
+        $(div_id).append($('<p></p>').html('<i>No valid results returned.</i>'));
+    } else {
+        var valid_keys = getKeysFromObject(gc_formatted);
+        for(i = 0; i < valid_keys.length; i++){
+            vk = valid_keys[i];
+            $(div_id).append($('<h3></h3>').html(vk));
+            var subkeys = getKeysFromObject(gc_formatted[vk]);
+            for (j = 0; j < subkeys.length; j++){
+                var sk = subkeys[j];
+                $(div_id).append('<b>'+sk+'</b>: '+gc_formatted[vk][sk]+'<br>');
+            };
+            if (vk != 'best'){
+                $(div_id).append(
+                    $('<button type="button" class="markbest" id="'+ vk +
+                      '">Mark Best</button><br>')
+                );
+            };
+        };
+    };
+}
+
+// *** LEAFLET SCRIPT EXECUTION BEGINS HERE ***
+var show_map = $('#gc_json').data("trigger");
+
+$(document).ready(function() {
+    if( show_map == 1 ){
+        // Create a map and add a blank layer object
+        var mymap = makeMap('leafmap');
+        var layer = L.layerGroup();
+        mymap.addLayer(layer);
+        // Parsing an 'over-stringified' string to JSON
+        // This seems to be the only safe way to retrieve JSON from a 
+        //  <meta> object
+        var gc_json = JSON.parse(JSON.parse( $('#gc_json').data("json") )); 
+        // Add keys of the object to the drop-down selection
+        const gc_object = new GCResults(gc_json);
+        fillDropDownMenu('#gc_result', gc_object.getKeys() );
+        var gc_selection;
+        // When a value is selected, use it to create a map
+        $('#gc_result').change(function(){
+            // Get the selection and use it to populate a list of results
+            gc_selection = $('#gc_result option:selected').val();
+            // Use these results to populate points on a map
+            addResultMarkers(
+                gc_results = gc_object.getLongForm()[gc_selection], 
+                mymap = mymap, 
+                layer = layer
+            );
+            addResultDetails(
+                address = gc_selection, 
+                iso = gc_object.getCondensedForm()[gc_selection]['iso2'], 
+                gc_formatted = gc_object.getLongForm()[gc_selection],
+                div_id = '#disp_results'
+            );
+            console.log("Hello");
+        });
+        // Event listener for marking an object best and refreshing the map
+        $(document).on('click','.markbest',function(){
+            var best_id = $(this).attr('id');
+            // Mark the object "Best"
+            gc_object.markBest(gc_selection,best_id);
+            // Update the map and document details
+            addResultMarkers(
+                gc_results = gc_object.getLongForm()[gc_selection], 
+                mymap = mymap, 
+                layer = layer
+            );
+            addResultDetails(
+                address = gc_selection, 
+                iso = gc_object.getCondensedForm()[gc_selection]['iso2'], 
+                gc_formatted = gc_object.getLongForm()[gc_selection], 
+                div_id = '#disp_results'
+            );
+        });
+    };
+});
+
+
+
     </script>
 {% endblock %}
 
