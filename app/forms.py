@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, FloatField, IntegerField, StringField, SubmitField
+from wtforms import BooleanField, FloatField, IntegerField, StringField, SubmitField, HiddenField
 from wtforms.validators import DataRequired, Optional
 
 class GeocodeForm(FlaskForm):
@@ -40,5 +40,8 @@ class VetSaveForm(FlaskForm):
         'Save file to path (<i>required</i>)', 
         validators=[DataRequired()]
     )
+    json_data = HiddenField()
     submit = SubmitField('Save vetted data')
 
+class VetFinalForm(FlaskForm):
+    submit = SubmitField('Return to Start')

@@ -155,25 +155,25 @@ class GCResults {
     // Update new sub-objects from the long-form dataset back into condensed form
     updateCondensed(update_key = 'best'){
         // Iterate through each valid result in the long-form object
-        var long_queries = getKeysFromObject(self.gc_long);
+        var long_queries = getKeysFromObject(this.gc_long);
         for(var i = 0; i < long_queries.length; i++){
             var this_query = long_queries[i];
             // Check if there is a 'best' object in the dataset
-            if (update_key in self.gc_long[this_query]){
+            if (update_key in this.gc_long[this_query]){
                 // Remove selected attributes from the condensed object
-                var old_vals = getKeysFromObject(self.gc_condensed[this_query]).filter(
-                    k => k.includes(update_key + "_")
-                );
-                for (j = 0; j < old_vals.length; j++){
-                    var remove_me = old_vals[j];
-                    self.gc_long[this_query][remove_me] = '';
-                };
+     //           var old_vals = getKeysFromObject(this.gc_condensed[this_query]).filter(
+      //              k => k.includes(update_key + "_")
+        //        );
+          //      for (var j = 0; j < old_vals.length; j++){
+            //        var remove_me = old_vals[j];
+              //      this.gc_long[this_query][remove_me] = '';
+                //};
                 // Add selected attributes back to the condensed object
-                var new_obj = self.gc_long[this_query][update_key];
+                var new_obj = this.gc_long[this_query][update_key];
                 var add_keys = getKeysFromObject(new_obj);
                 for(var k = 0; k < add_keys.length; k++){
                     var add_key = add_keys[k];
-                    self.gc_condensed[this_query][update_key+'_'+add_key] = new_obj[add_key];
+                    this.gc_condensed[this_query][update_key+'_'+add_key] = new_obj[add_key];
                 };
             };
         };
@@ -243,11 +243,13 @@ function addResultMarkers(gc_results, mymap, layer){
     };
     // Add new markers
     mymap.removeLayer(layer);
-    layer = L.layerGroup(markers);
-    mymap.addLayer(layer);
-    // Zoom to markers
-    var group = new L.featureGroup(markers)
-    mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
+    if(markers.length > 0) {
+        layer = L.layerGroup(markers);
+        mymap.addLayer(layer);
+        // Zoom to markers
+        var group = new L.featureGroup(markers)
+        mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
+    }
 }
 
 // Given a set of valid objects, populate a div with information about 
@@ -295,7 +297,8 @@ $(document).ready(function() {
         //  <meta> object
         var gc_json = JSON.parse(JSON.parse( $('#gc_json').data("json") )); 
         // Add keys of the object to the drop-down selection
-        const gc_object = new GCResults(gc_json);
+        var gc_object = new GCResults(gc_json);
+        document.getElementById("json_data").value = encodeURIComponent(JSON.stringify(gc_object.gc_condensed));
         fillDropDownMenu('#gc_result', gc_object.getKeys() );
         var gc_selection;
         // When a value is selected, use it to create a map
@@ -314,7 +317,6 @@ $(document).ready(function() {
                 gc_formatted = gc_object.getLongForm()[gc_selection],
                 div_id = '#disp_results'
             );
-            console.log("Hello");
         });
         // Event listener for marking an object best and refreshing the map
         $(document).on('click','.markbest',function(){
@@ -333,6 +335,7 @@ $(document).ready(function() {
                 gc_formatted = gc_object.getLongForm()[gc_selection], 
                 div_id = '#disp_results'
             );
+            document.getElementById("json_data").value = encodeURIComponent(JSON.stringify(gc_object.getCondensedForm()));
         });
     };
 });
@@ -348,7 +351,7 @@ $(document).ready(function() {
         {{ form.hidden_tag() }}
         <!-- Iterate through all form fields -->
         {% for field in form %}
-            {% if field.type not in ["SubmitField","CSRFTokenField"] %}
+            {% if field.type not in ["SubmitField","CSRFTokenField", "HiddenField"] %}
                 <p>
                     {{ field.label }} <br>
                     {{ field(size=32) }} <br>

@@ -1,7 +1,9 @@
 import json
-from flask import flash, render_template, request, Response
+import urllib
+import pprint
+from flask import flash, render_template, request, Response, redirect
 from app import app
-from app.forms import GeocodeForm, VetLoadForm, VetSaveForm
+from app.forms import GeocodeForm, VetLoadForm, VetSaveForm, VetFinalForm
 from geocode import batch_geocode, vet_geocode, utilities
 import time
 
@@ -44,6 +46,7 @@ def vet():
     # Instantiate form to get input filepath
     load_form = VetLoadForm()
     save_form = VetSaveForm()
+    final_form = VetFinalForm()
     # Instantiate an object that will be passed to the page definining 
     #  source types and source suffixes
     struct = utilities.get_geocoding_suffixes()
@@ -65,10 +68,22 @@ def vet():
     # To do when the second (save vetted data) form is submitted
     if save_form.validate_on_submit():
         # TODO: Get the transformed JSON data from the page
+        returned_json = urllib.parse.unquote(save_form.json_data.data)
+        returned_data = utilities.json_to_dataframe(returned_json)
+
+        save_filepath = save_form.outfile.data
+        save_message = utilities.safe_save_vet_output(returned_data, save_filepath)
         # TODO: Save the transformed JSON data using the submitted filepath
-        flash("Data saved successfully!!")
-        return render_template('vet.html', title='Vetting', form=save_form, 
+        flash(save_message)
+        if save_message == "Data saved successfully!":
+            return render_template('vet.html', title='Vetting', form=final_form, 
                                vet_json=[], show_map=0, result_struct=[])
+        else:
+            return render_template('vet.html', title='Vetting', form=save_form, 
+                               vet_json=[], show_map=0, result_struct=[])
+
+    if final_form.validate_on_submit():
+        return redirect('/index')
     # Start application for the first time
     return render_template('vet.html', title='Vetting', form=load_form, 
                            vet_json=[], show_map=0, result_struct=struct)

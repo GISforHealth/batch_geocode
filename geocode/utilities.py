@@ -11,6 +11,10 @@ Written in Python 3.6
 import numpy as np
 import pandas as pd
 from encodings.aliases import aliases
+import json
+import re
+import csv
+import os
 
 
 def read_to_pandas(fp, encoding='detect'):
@@ -63,3 +67,39 @@ def get_geocoding_suffixes():
     """Store a list of suffixes that should be included in geocoding fields"""
     suffixes_list = ['name','type','lat','long','buffer']
     return suffixes_list
+
+
+def json_to_dataframe(json_data):
+    """Get the json passed from vet save form and process into excel-saveable format"""
+    null = None
+    json_data = eval(json_data)
+    keys = json_data.keys()
+    column_names = list(json_data[list(keys)[0]].keys())
+    column_names.insert(0, "address")
+    del column_names[-1]
+
+    csv_list = list()
+    for key in keys:
+        row_list = list(json_data[key].values())
+        row_list.insert(0, key)
+        del row_list[-1]
+        row_list[0] = re.sub('\d: ','', row_list[0])
+        csv_list.append(row_list)
+
+    df = pd.DataFrame(csv_list, columns=column_names)
+    return(df)
+
+def safe_save_vet_output(df, filepath):
+    if(os.path.exists(os.path.dirname(filepath))):
+        try:
+            if filepath.lower().endswith('.csv'):
+                df.to_csv(filepath, index=False)
+            elif filepath.lower().endswith('.xlsx'):
+                df.to_excel(filepath, index=False)
+            else:
+                return("Filepath must end in .csv or .xlsx")
+            return("Data saved successfully!")
+        except:
+            return("File failed to save - RIP everything")
+    else:
+         return("specified directory does not exist")
