@@ -104,7 +104,7 @@ if __name__ == "__main__":
         "-u", "--usetools", type=str, default='GM,OSM,GN', 
         help="""Comma-separated string listing geocoding web tools to query. 
              Valid items in this list include GM (Google Maps), OSM 
-             (OpenStreetMap), andGN (GeoNames). Leaving this 
+             (OpenStreetMap), and GN (GeoNames). Leaving this 
              argument blank will query all available tools as a default 
              UNLESS the Google Maps key and/or GeoNames username are blank. 
              Example valid arguments: '-u GN'; '-u GN,GM'; '-u OSM,GM'

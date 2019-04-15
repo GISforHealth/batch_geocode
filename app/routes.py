@@ -1,6 +1,5 @@
 import json
 import urllib
-import pprint
 from flask import flash, render_template, request, Response, redirect
 from app import app
 from app.forms import GeocodeForm, VetLoadForm, VetSaveForm, VetFinalForm
