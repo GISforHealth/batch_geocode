@@ -16,7 +16,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from geocode import query_funcs
-from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes
+from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes, validate_iso2
 from tqdm import tqdm
 
 
@@ -53,6 +53,10 @@ def geocode_from_flask(infile, outfile, keygm, geonames, iso, encoding, address,
 
         # Reading input file
         df, encoding = read_to_pandas(infile, encoding)
+        #check for valid iso2s
+        valid_iso2 = validate_iso2(df[iso])
+        if(valid_iso2 is not None):
+            return(valid_iso2)
         # Initialize progress bar for pandas
         tqdm.pandas()
         # Geocode Rows of Data
@@ -69,6 +73,7 @@ def geocode_from_flask(infile, outfile, keygm, geonames, iso, encoding, address,
         df_with_geocoding = pd.concat([df, geocoded_cols], axis=1)
         # Export Outfile
         write_pandas(df=df_with_geocoding, fp=outfile, encoding=encoding)
+        return None
 
 
 if __name__ == "__main__":
