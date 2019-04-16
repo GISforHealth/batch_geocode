@@ -1,7 +1,8 @@
 import json
-from flask import flash, render_template, request, Response
+import urllib
+from flask import flash, render_template, request, Response, redirect
 from app import app
-from app.forms import GeocodeForm, VetLoadForm, VetSaveForm
+from app.forms import GeocodeForm, VetLoadForm, VetSaveForm, VetFinalForm
 from geocode import batch_geocode, vet_geocode, utilities
 import time
 
@@ -16,24 +17,26 @@ def index():
             if form.use_gm.data: usetools.append('GM')
             if form.use_osm.data: usetools.append('OSM')
             if form.use_gn.data: usetools.append('GN')
-            if form.use_fg.data: usetools.append('FG')
 
-            batch_geocode.geocode_from_flask(
-                infile=form.infile.data,
-                outfile=form.outfile.data, 
-                encoding=form.encoding.data, 
-                address=form.address.data,
-                iso=form.iso.data,
-                keygm=form.key.data, 
-                geonames=form.geonames.data,
-                usetools=usetools, 
-                resultspersource=form.resultsper.data, 
-                geo_buffer=form.geo_buffer.data
+            error = batch_geocode.geocode_from_flask(
+                        infile=form.infile.data,
+                        outfile=form.outfile.data, 
+                        encoding=form.encoding.data, 
+                        address=form.address.data,
+                        iso=form.iso.data,
+                        keygm=form.key.data, 
+                        geonames=form.geonames.data,
+                        usetools=usetools, 
+                        resultspersource=form.resultsper.data, 
+                        geo_buffer=form.geo_buffer.data
             )
-            flash(f"""Your output file for input file, {form.infile.data}, using 
-                      tools {usetools}, with {form.resultsper.data} 
-                      results per source, and a buffer of {form.geo_buffer.data} is 
-                      now ready to view at {form.outfile.data}.""")
+            if(error is not None):
+                flash(error, "error")
+            else:
+                flash(f"""Your output file for input file, {form.infile.data}, using 
+                          tools {usetools}, with {form.resultsper.data} 
+                          results per source, and a buffer of {form.geo_buffer.data} is 
+                          now ready to view at {form.outfile.data}.""")
             return render_template('index.html', title='Home', form=form)
         else:
             flash('Need to enter all required fields')
@@ -45,6 +48,7 @@ def vet():
     # Instantiate form to get input filepath
     load_form = VetLoadForm()
     save_form = VetSaveForm()
+    final_form = VetFinalForm()
     # Instantiate an object that will be passed to the page definining 
     #  source types and source suffixes
     struct = utilities.get_geocoding_suffixes()
@@ -65,11 +69,23 @@ def vet():
 
     # To do when the second (save vetted data) form is submitted
     if save_form.validate_on_submit():
-        # TODO: Get the transformed JSON data from the page
-        # TODO: Save the transformed JSON data using the submitted filepath
-        flash("Data saved successfully!!")
-        return render_template('vet.html', title='Vetting', form=save_form, 
+        # Get the transformed JSON data from the page
+        returned_json = urllib.parse.unquote(save_form.json_data.data)
+        returned_data = utilities.json_to_dataframe(returned_json)
+
+        save_filepath = save_form.outfile.data
+        save_message = utilities.safe_save_vet_output(returned_data, save_filepath)
+        # Save the transformed JSON data using the submitted filepath
+        flash(save_message)
+        if save_message == "Data saved successfully!":
+            return render_template('vet.html', title='Vetting', form=final_form, 
                                vet_json=[], show_map=0, result_struct=[])
+        else:
+            return render_template('vet.html', title='Vetting', form=save_form, 
+                               vet_json=[], show_map=0, result_struct=[])
+
+    if final_form.validate_on_submit():
+        return redirect('/index')
     # Start application for the first time
     return render_template('vet.html', title='Vetting', form=load_form, 
                            vet_json=[], show_map=0, result_struct=struct)

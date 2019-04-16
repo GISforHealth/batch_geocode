@@ -6,7 +6,7 @@ Created on Fri Mar 17 10:37:07 2017
 
 This file defines the command line interface for the automated geocoding 
 application, which allows the user to geocode many locations in succession using
-the the Google Maps, OpenStreetMaps, GeoNames, and/or FuzzyG APIs. For more
+the the Google Maps, OpenStreetMaps, and/or GeoNames. For more
 information about how to use this tool, please see the repository README.
 
 Written in Python 3.6
@@ -16,7 +16,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from geocode import query_funcs
-from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes
+from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes, validate_iso2
 from tqdm import tqdm
 
 
@@ -53,6 +53,10 @@ def geocode_from_flask(infile, outfile, keygm, geonames, iso, encoding, address,
 
         # Reading input file
         df, encoding = read_to_pandas(infile, encoding)
+        #check for valid iso2s
+        valid_iso2 = validate_iso2(df[iso])
+        if(valid_iso2 is not None):
+            return(valid_iso2)
         # Initialize progress bar for pandas
         tqdm.pandas()
         # Geocode Rows of Data
@@ -69,6 +73,7 @@ def geocode_from_flask(infile, outfile, keygm, geonames, iso, encoding, address,
         df_with_geocoding = pd.concat([df, geocoded_cols], axis=1)
         # Export Outfile
         write_pandas(df=df_with_geocoding, fp=outfile, encoding=encoding)
+        return None
 
 
 if __name__ == "__main__":
@@ -101,13 +106,13 @@ if __name__ == "__main__":
     parser.add_argument("-g", "--geonames", type=str, 
                         help="Activated Geonames username")
     parser.add_argument(
-        "-u", "--usetools", type=str, default='GM,OSM,GN,FG', 
+        "-u", "--usetools", type=str, default='GM,OSM,GN', 
         help="""Comma-separated string listing geocoding web tools to query. 
              Valid items in this list include GM (Google Maps), OSM 
-             (OpenStreetMap), GN (GeoNames), and FG (FuzzyG). Leaving this 
+             (OpenStreetMap), and GN (GeoNames). Leaving this 
              argument blank will query all available tools as a default 
              UNLESS the Google Maps key and/or GeoNames username are blank. 
-             Example valid arguments: '-u GN'; '-u GN,GM,FG'; '-u OSM,GM,FG'
+             Example valid arguments: '-u GN'; '-u GN,GM'; '-u OSM,GM'
              """
     )
     parser.add_argument(
