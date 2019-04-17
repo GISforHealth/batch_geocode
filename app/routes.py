@@ -31,7 +31,7 @@ def index():
                         geo_buffer=form.geo_buffer.data
             )
             if(error is not None):
-                flash(error, "error")
+                flash(error)
             else:
                 flash(f"""Your output file for input file, {form.infile.data}, using 
                           tools {usetools}, with {form.resultsper.data} 
@@ -69,13 +69,14 @@ def vet():
 
     # To do when the second (save vetted data) form is submitted
     if save_form.validate_on_submit():
-        # TODO: Get the transformed JSON data from the page
+        #Get the transformed JSON data from the page
         returned_json = urllib.parse.unquote(save_form.json_data.data)
         returned_data = utilities.json_to_dataframe(returned_json)
 
+        # Save the transformed JSON data using the submitted filepath
         save_filepath = save_form.outfile.data
         save_message = utilities.safe_save_vet_output(returned_data, save_filepath)
-        # TODO: Save the transformed JSON data using the submitted filepath
+
         flash(save_message)
         if save_message == "Data saved successfully!":
             return render_template('vet.html', title='Vetting', form=final_form, 
