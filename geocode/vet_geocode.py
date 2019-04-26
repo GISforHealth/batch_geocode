@@ -30,10 +30,15 @@ class VettingData(object):
         }
         self.format_in_data()
         self.out_fp = None # To be defined in `save_vetted_data()`
+        self.error = None
 
     def load_data(self):
         '''Load input file as a dataframe'''
-        in_df, self.encoding = read_to_pandas(fp=self.in_fp, encoding=self.encoding)
+        in_df, self.encoding, error = read_to_pandas(fp=self.in_fp, encoding=self.encoding)
+
+        if(error is not None):
+            self.error = error
+
         # Create a unique index field
         in_df['__index'] = range( 0, in_df.shape[0] )
         return in_df
@@ -98,6 +103,9 @@ class VettingData(object):
             on = ['__index'],
             how = 'left'
         )
-        write_pandas(df=full_data, fp=self.out_fp, encoding=self.encoding)
+        error = write_pandas(df=full_data, fp=self.out_fp, encoding=self.encoding)
         print(f"Data saved successfully to {self.out_fp}.")
+
+    def get_error(self):
+        return self.error
     

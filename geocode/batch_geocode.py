@@ -16,7 +16,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from geocode import query_funcs
-from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes, validate_iso2
+from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes, validate_iso2, check_keys_for_tools
 from tqdm import tqdm
 
 
@@ -51,29 +51,43 @@ def geocode_from_flask(infile, outfile, keygm, geonames, iso, encoding, address,
         resultspersource = resultspersource or None
         geo_buffer = geo_buffer or None
 
+        key_error = check_keys_for_tools(keygm, geonames, usetools)
+        if (key_error is not None):
+            return("Key Error: ", key_error)
+
         # Reading input file
-        df, encoding = read_to_pandas(infile, encoding)
+        df, encoding, read_error = read_to_pandas(infile, encoding)
+
+        if (read_error is not None):
+            return("Infile Error: ", read_error)
         #check for valid iso2s
         valid_iso2 = validate_iso2(df[iso])
         if(valid_iso2 is not None):
-            return(valid_iso2)
+            return("The following iso2s provided were invalid: ", valid_iso2)
         # Initialize progress bar for pandas
         tqdm.pandas()
-        # Geocode Rows of Data
-        geocoded_cols = df.progress_apply(
-            lambda row: query_funcs.geocode_row(
-                address=row[address], iso=row[iso],
-                gm_key=keygm, gn_key=geonames,
-                execute_names=usetools, results_per_app=resultspersource,
-                max_buffer=geo_buffer
-            ),
-            axis=1
-        )
-        geocoded_cols = rearrange_fields(geocoded_cols)
-        df_with_geocoding = pd.concat([df, geocoded_cols], axis=1)
+
+        try:
+            # Geocode Rows of Data
+            geocoded_cols = df.progress_apply(
+                lambda row: query_funcs.geocode_row(
+                    address=row[address], iso=row[iso],
+                    gm_key=keygm, gn_key=geonames,
+                    execute_names=usetools, results_per_app=resultspersource,
+                    max_buffer=geo_buffer
+                ),
+                axis=1
+            )
+            geocoded_cols = rearrange_fields(geocoded_cols)
+            df_with_geocoding = pd.concat([df, geocoded_cols], axis=1)            
+        except Exception as e:
+            return("Geocoding Error: ", e)
+
         # Export Outfile
-        write_pandas(df=df_with_geocoding, fp=outfile, encoding=encoding)
-        return None
+        write_error = write_pandas(df=df_with_geocoding, fp=outfile, encoding=encoding)
+        if (write_error is not None):
+            return("Outfile Error: ", write_error)
+        return None, None
 
 
 if __name__ == "__main__":
