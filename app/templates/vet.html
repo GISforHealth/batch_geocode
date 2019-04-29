@@ -243,13 +243,13 @@ function addResultMarkers(gc_results, mymap, layer){
         };
     };
     // Add new markers
-    this.mymap.removeLayer(this.layer);
+    mymap.removeLayer(layer);
     if(markers.length > 0) {
-        this.layer = L.layerGroup(markers);
-        this.mymap.addLayer(this.layer);
+        layer = L.layerGroup(markers);
+        mymap.addLayer(layer);
         // Zoom to markers
         var group = new L.featureGroup(markers)
-        this.mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
+        mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
     }
 }
 
@@ -292,7 +292,7 @@ $(document).ready(function() {
         // Create a map and add a blank layer object
         var mymap = makeMap('leafmap');
         var layer = L.layerGroup();
-        this.mymap.addLayer(layer);
+        mymap.addLayer(layer);
         // Parsing an 'over-stringified' string to JSON
         // This seems to be the only safe way to retrieve JSON from a 
         //  <meta> object
