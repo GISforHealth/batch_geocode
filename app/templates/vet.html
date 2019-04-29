@@ -243,7 +243,7 @@ function addResultMarkers(gc_results, mymap, layer){
         };
     };
     // Add new markers
-    mymap.removeLayer(layer);
+    layer.clearLayers();
     if(markers.length > 0) {
         layer = L.layerGroup(markers);
         mymap.addLayer(layer);
