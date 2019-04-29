@@ -3,10 +3,11 @@
 {% block scripts %}
     <!-- Sourcing libraries and scripts -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="{{url_for('static', filename='leaflet/leaflet.js')}}"></script>
+    <script src="{{ url_for('static', filename='leaflet/leaflet.js') }}"></script>
     <!-- <script src="{{url_for('static', filename='vetting_maps.js')}}"></script> -->
-    <link rel="stylesheet" href="{{url_for('static', filename='leaflet/leaflet.css')}}">
-    <link rel="stylesheet" href="{{url_for('static', filename='vetting.css')}}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='leaflet/leaflet.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vetting.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
 
     <!-- JSON object containing the geocoded data and trigger is stored here -->
     <meta id='gc_json' 

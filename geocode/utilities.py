@@ -20,39 +20,44 @@ import os
 def read_to_pandas(fp, encoding='detect'):
     """Read an input Excel or CSV file as a pandas DataFrame, testing a variety
     of encodings."""
-    readfun = pd.read_csv if fp.lower().endswith('.csv') else pd.read_excel
-    if encoding != 'detect':
-        # Try to read using the passed encoding
-        try:
-            df = readfun(fp, encoding=encoding)
-            return (df, encoding)
-        except UnicodeDecodeError:
-            print(f"The file {fp} could not be opened with encoding {encoding}.")
-            print("Testing out all valid character encodings now...")
-    # If the 
-    test_encodings = ['utf-8','latin1'] + list(aliases.keys())
-    valid_encoding = None
-    for test_encoding in test_encodings:
-        try:
-            df = readfun(fp, encoding=test_encoding)
-            valid_encoding = test_encoding
-            break
-        except UnicodeDecodeError:
-            pass
-    if valid_encoding is None:
-        raise UnicodeDecodeError(encoding='All standard encodings', reason='', 
-                                 object=f'file {fp}', start=0, end=0)
-    return (df, valid_encoding)
+    try:
+        readfun = pd.read_csv if fp.lower().endswith('.csv') else pd.read_excel
+        if encoding != 'detect':
+            # Try to read using the passed encoding
+            try:
+                df = readfun(fp, encoding=encoding)
+                return (df, encoding, None)
+            except Exception as e:
+                print(f"The file {fp} could not be opened with encoding {encoding}.")
+                print("Testing out all valid character encodings now...")
+        # If the 
+        test_encodings = ['utf-8','latin1'] + list(aliases.keys())
+        valid_encoding = None
+        for test_encoding in test_encodings:
+            try:
+                df = readfun(fp, encoding=test_encoding)
+                valid_encoding = test_encoding
+            except UnicodeDecodeError:
+                pass
+        if valid_encoding is None:
+            return(None, None, UnicodeDecodeError(encoding='All standard encodings', reason='', 
+                object=f'file {fp}', start=0, end=0))
+        return (df, valid_encoding, None)
+    except Exception as e:
+        return(None, None, e)
 
 
 def write_pandas(df, fp, encoding):
     """Write a pandas DataFrame to a CSV or Excel file using a known file
     encoding."""
-    if fp.lower().endswith('.csv'):
-        df.to_csv(fp, encoding=encoding, index=False)
-    else:
-        df.to_excel(fp, encoding=encoding, index=False)
-    return None
+    try:
+        if fp.lower().endswith('.csv'):
+            df.to_csv(fp, encoding=encoding, index=False)
+        else:
+            df.to_excel(fp, encoding=encoding, index=False)
+        return None
+    except Exception as e:
+        return e
 
 
 def get_geocoding_sources():
@@ -139,4 +144,22 @@ def validate_iso2(iso2_list):
             bad_iso2s = ", ".join(bad_iso2s)
         else:
             bad_iso2s = bad_iso2s[0]
-        return "The following iso2s provided were invalid: " + bad_iso2s
+        return bad_iso2s
+
+
+def check_keys_for_tools(keygm, geonames, usetools):
+    """Check to ensure that a key has been entered for Google maps, and a username has been entered for geonames """
+    if("GM" in usetools):
+        if(keygm == ""):
+            return "Google Maps has been specified as a service, a Google Maps key must be provided."
+    if("GN" in usetools):
+        if(geonames == ""):
+            return "Geonames has been specified as a service, a Geonames username must be provided."
+    
+def check_valid_file(filepath):
+    try:
+        fh = open(filepath, 'r')
+    except FileNotFoundError as e:
+        return(e)
+    if(not filepath.lower().endswith(('.csv', '.xlsx'))):
+        return("Geocoded file must be a .csv or .xlsx file")
