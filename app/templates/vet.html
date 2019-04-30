@@ -328,10 +328,7 @@ $(document).ready(function() {
             // Mark the object "Best"
             gc_object.markBest(gc_selection,best_id);
             // Update the map and document details
-            mymap.eachLayer(function (layer) {
-                mymap.removeLayer(layer);
-            });
-            mymap.addLayer(base_layer);
+            mymap.removeLayer(marker_layer);
             marker_layer = L.layerGroup();
             addResultMarkers(
                 gc_results = gc_object.getLongForm()[gc_selection],
