@@ -294,7 +294,7 @@ $(document).ready(function() {
         // Create a map and add a blank layer object
         this.mymap = makeMap('leafmap');
         this.layer = L.layerGroup();
-        mymap.addLayer(this.layer);
+        this.mymap.addLayer(this.layer);
         // Parsing an 'over-stringified' string to JSON
         // This seems to be the only safe way to retrieve JSON from a 
         //  <meta> object
