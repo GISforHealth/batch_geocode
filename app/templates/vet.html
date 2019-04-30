@@ -199,7 +199,7 @@ class GCResults {
 
 // Given a set of valid objects, create leaflet markers and add them to
 // the map
-function addResultMarkers(gc_results, mymap, layer){
+function addResultMarkers(gc_results){
     // Iterate through all results and create markers for each
     var result_keys = getKeysFromObject(gc_results);
     var markers = [];
@@ -244,11 +244,11 @@ function addResultMarkers(gc_results, mymap, layer){
     };
     // Add new markers
     if(markers.length > 0) {
-        layer = L.layerGroup(markers);
-        mymap.addLayer(layer);
+        this.layer = L.layerGroup(markers);
+        this.mymap.addLayer(this.layer);
         // Zoom to markers
         var group = new L.featureGroup(markers)
-        mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
+        this.mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
     }
 }
 
@@ -285,13 +285,15 @@ function addResultDetails(address, iso, gc_formatted, div_id){
 
 // *** LEAFLET SCRIPT EXECUTION BEGINS HERE ***
 var show_map = $('#gc_json').data("trigger");
+var mymap;
+var layer;
 
 $(document).ready(function() {
     if( show_map == 1 ){
         // Create a map and add a blank layer object
-        var mymap = makeMap('leafmap');
-        var layer = L.layerGroup();
-        mymap.addLayer(layer);
+        this.mymap = makeMap('leafmap');
+        this.layer = L.layerGroup();
+        mymap.addLayer(this.layer);
         // Parsing an 'over-stringified' string to JSON
         // This seems to be the only safe way to retrieve JSON from a 
         //  <meta> object
@@ -307,9 +309,7 @@ $(document).ready(function() {
             gc_selection = $('#gc_result option:selected').val();
             // Use these results to populate points on a map
             addResultMarkers(
-                gc_results = gc_object.getLongForm()[gc_selection], 
-                mymap = mymap, 
-                layer = layer
+                gc_results = gc_object.getLongForm()[gc_selection]
             );
             addResultDetails(
                 address = gc_selection, 
@@ -324,11 +324,9 @@ $(document).ready(function() {
             // Mark the object "Best"
             gc_object.markBest(gc_selection,best_id);
             // Update the map and document details
-            mymap.removeLayer(layer);
+            this.mymap.removeLayer(this.layer);
             addResultMarkers(
-                gc_results = gc_object.getLongForm()[gc_selection], 
-                mymap = mymap, 
-                layer = layer
+                gc_results = gc_object.getLongForm()[gc_selection]
             );
             addResultDetails(
                 address = gc_selection, 
