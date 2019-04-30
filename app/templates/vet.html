@@ -286,14 +286,16 @@ function addResultDetails(address, iso, gc_formatted, div_id){
 // *** LEAFLET SCRIPT EXECUTION BEGINS HERE ***
 var show_map = $('#gc_json').data("trigger");
 var mymap;
-var layer;
+var base_layer;
+var marker_layer;
 
 $(document).ready(function() {
     if( show_map == 1 ){
         // Create a map and add a blank layer object
         mymap = makeMap('leafmap');
-        layer = L.layerGroup();
-        mymap.addLayer(layer);
+        base_layer = L.layerGroup();
+        marker_layer = L.layerGroup();
+        mymap.addLayer(base_layer);
         // Parsing an 'over-stringified' string to JSON
         // This seems to be the only safe way to retrieve JSON from a 
         //  <meta> object
@@ -310,7 +312,7 @@ $(document).ready(function() {
             // Use these results to populate points on a map
             addResultMarkers(
                 gc_results = gc_object.getLongForm()[gc_selection],
-                lyr = layer,
+                lyr = marker_layer,
                 map = mymap
             );
             addResultDetails(
@@ -329,9 +331,11 @@ $(document).ready(function() {
             mymap.eachLayer(function (layer) {
                 mymap.removeLayer(layer);
             });
+            mymap.addLayer(base_layer);
+            marker_layer = L.layerGroup();
             addResultMarkers(
                 gc_results = gc_object.getLongForm()[gc_selection],
-                lyr = layer,
+                lyr = marker_layer,
                 map = mymap
             );
             addResultDetails(
