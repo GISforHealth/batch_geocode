@@ -242,7 +242,6 @@ function addResultMarkers(gc_results, lyr, map){
             markers.push(circle);
         };
     };
-    lyr.clearLayers();
     // Add new markers
     if(markers.length > 0) {
         lyr = L.layerGroup(markers);
@@ -327,6 +326,7 @@ $(document).ready(function() {
             // Mark the object "Best"
             gc_object.markBest(gc_selection,best_id);
             // Update the map and document details
+            layer.clearLayers();
             mymap.removeLayer(layer);
             addResultMarkers(
                 gc_results = gc_object.getLongForm()[gc_selection],
