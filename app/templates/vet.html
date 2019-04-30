@@ -199,7 +199,7 @@ class GCResults {
 
 // Given a set of valid objects, create leaflet markers and add them to
 // the map
-function addResultMarkers(gc_results){
+function addResultMarkers(gc_results, lyr, map){
     // Iterate through all results and create markers for each
     var result_keys = getKeysFromObject(gc_results);
     var markers = [];
@@ -242,14 +242,14 @@ function addResultMarkers(gc_results){
             markers.push(circle);
         };
     };
-    this.layer.clearLayers();
+    lyr.clearLayers();
     // Add new markers
     if(markers.length > 0) {
-        this.layer = L.layerGroup(markers);
-        this.mymap.addLayer(this.layer);
+        lyr = L.layerGroup(markers);
+        map.addLayer(lyr);
         // Zoom to markers
         var group = new L.featureGroup(markers)
-        this.mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
+        map.fitBounds(group.getBounds(), {padding : L.point(20,20)});
     }
 }
 
@@ -310,7 +310,9 @@ $(document).ready(function() {
             gc_selection = $('#gc_result option:selected').val();
             // Use these results to populate points on a map
             addResultMarkers(
-                gc_results = gc_object.getLongForm()[gc_selection]
+                gc_results = gc_object.getLongForm()[gc_selection],
+                lyr = this.layer,
+                map = this.mymap
             );
             addResultDetails(
                 address = gc_selection, 
@@ -327,7 +329,9 @@ $(document).ready(function() {
             // Update the map and document details
             this.mymap.removeLayer(this.layer);
             addResultMarkers(
-                gc_results = gc_object.getLongForm()[gc_selection]
+                gc_results = gc_object.getLongForm()[gc_selection],
+                lyr = this.layer,
+                map = this.mymap
             );
             addResultDetails(
                 address = gc_selection, 
