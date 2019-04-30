@@ -201,58 +201,58 @@ class GCResults {
 // the map
 function addResultMarkers(gc_results, mymap, layer){
     // Iterate through all results and create markers for each
-    // var result_keys = getKeysFromObject(gc_results);
-    // var markers = [];
-    // // Create markers for all locations and circles for locations
-    // //  with a buffer greater than 0
-    // for(i=0; i < result_keys.length; i++){
-    //     var key = result_keys[i];
-    //     if (key == 'best'){
-    //         var direction = 'top';
-    //     } else {
-    //         var direction = 'left';
-    //     };
-    //     var marker = L.marker(
-    //         L.latLng(
-    //             {lat: gc_results[key]['lat'], lng: gc_results[key]['long']}
-    //         ),
-    //         { opacity:0.5 }
-    //     );
-    //     marker.bindTooltip(
-    //         key,
-    //         { permanent:true, className:"tooltip", offset:[0, 0], 
-    //           opacity:0.75, direction:direction
-    //         }
-    //     );
-    //     markers.push(marker);
-    //     // If the buffer is greater than 0, make a circle
-    //     if((gc_results[key]['buffer'] != null) && (gc_results[key]['buffer'] > 0)){
-    //         var circle = L.circle(
-    //             L.latLng(
-    //                 {lat: gc_results[key]['lat'], lng: gc_results[key]['long']}
-    //             ),
-    //             { 
-    //                 opacity: 0.4,
-    //                 color: 'blue',
-    //                 fillColor: 'blue',
-    //                 fillOpacity: 0.15,
-    //                 radius: gc_results[key]['buffer'] * 1000
-    //             }
-    //         );
-    //         markers.push(circle);
-    //     };
-    // };
-    // console.log(markers);
+    var result_keys = getKeysFromObject(gc_results);
+    var markers = [];
+    // Create markers for all locations and circles for locations
+    //  with a buffer greater than 0
+    for(i=0; i < result_keys.length; i++){
+        var key = result_keys[i];
+        if (key == 'best'){
+            var direction = 'top';
+        } else {
+            var direction = 'left';
+        };
+        var marker = L.marker(
+            L.latLng(
+                {lat: gc_results[key]['lat'], lng: gc_results[key]['long']}
+            ),
+            { opacity:0.5 }
+        );
+        marker.bindTooltip(
+            key,
+            { permanent:true, className:"tooltip", offset:[0, 0], 
+              opacity:0.75, direction:direction
+            }
+        );
+        markers.push(marker);
+        // If the buffer is greater than 0, make a circle
+        if((gc_results[key]['buffer'] != null) && (gc_results[key]['buffer'] > 0)){
+            var circle = L.circle(
+                L.latLng(
+                    {lat: gc_results[key]['lat'], lng: gc_results[key]['long']}
+                ),
+                { 
+                    opacity: 0.4,
+                    color: 'blue',
+                    fillColor: 'blue',
+                    fillOpacity: 0.15,
+                    radius: gc_results[key]['buffer'] * 1000
+                }
+            );
+            markers.push(circle);
+        };
+    };
+    console.log(markers);
     // Add new markers
     layer.clearLayers();
     mymap.removeLayer(layer);
-    // if(markers.length > 0) {
-    //     layer = L.layerGroup(markers);
-    //     mymap.addLayer(layer);
-    //     // Zoom to markers
-    //     var group = new L.featureGroup(markers)
-    //     mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
-    // }
+    if(markers.length > 0) {
+        layer = L.layerGroup(markers);
+        mymap.addLayer(layer);
+        // Zoom to markers
+        var group = new L.featureGroup(markers)
+        mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
+    }
 }
 
 // Given a set of valid objects, populate a div with information about 
