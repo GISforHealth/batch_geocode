@@ -292,9 +292,9 @@ var layer;
 $(document).ready(function() {
     if( show_map == 1 ){
         // Create a map and add a blank layer object
-        this.mymap = makeMap('leafmap');
-        this.layer = L.layerGroup();
-        this.mymap.addLayer(this.layer);
+        mymap = makeMap('leafmap');
+        layer = L.layerGroup();
+        mymap.addLayer(layer);
         // Parsing an 'over-stringified' string to JSON
         // This seems to be the only safe way to retrieve JSON from a 
         //  <meta> object
@@ -311,8 +311,8 @@ $(document).ready(function() {
             // Use these results to populate points on a map
             addResultMarkers(
                 gc_results = gc_object.getLongForm()[gc_selection],
-                lyr = this.layer,
-                map = this.mymap
+                lyr = layer,
+                map = mymap
             );
             addResultDetails(
                 address = gc_selection, 
@@ -327,11 +327,11 @@ $(document).ready(function() {
             // Mark the object "Best"
             gc_object.markBest(gc_selection,best_id);
             // Update the map and document details
-            this.mymap.removeLayer(this.layer);
+            mymap.removeLayer(layer);
             addResultMarkers(
                 gc_results = gc_object.getLongForm()[gc_selection],
-                lyr = this.layer,
-                map = this.mymap
+                lyr = layer,
+                map = mymap
             );
             addResultDetails(
                 address = gc_selection, 
