@@ -244,8 +244,6 @@ function addResultMarkers(gc_results, mymap, layer){
     };
     console.log(markers);
     // Add new markers
-    layer.clearLayers();
-    mymap.removeLayer(layer);
     if(markers.length > 0) {
         layer = L.layerGroup(markers);
         mymap.addLayer(layer);
@@ -327,6 +325,7 @@ $(document).ready(function() {
             // Mark the object "Best"
             gc_object.markBest(gc_selection,best_id);
             // Update the map and document details
+            this.mymap.removeLayer(layer);
             addResultMarkers(
                 gc_results = gc_object.getLongForm()[gc_selection], 
                 mymap = mymap, 
