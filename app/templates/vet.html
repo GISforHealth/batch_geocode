@@ -242,9 +242,10 @@ function addResultMarkers(gc_results, mymap, layer){
             markers.push(circle);
         };
     };
-    console.log(markers)
+    console.log(markers);
     // Add new markers
     layer.clearLayers();
+    mymap.removeLayer(layer);
     if(markers.length > 0) {
         layer = L.layerGroup(markers);
         mymap.addLayer(layer);
