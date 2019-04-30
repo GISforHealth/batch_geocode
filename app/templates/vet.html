@@ -242,6 +242,7 @@ function addResultMarkers(gc_results){
             markers.push(circle);
         };
     };
+    this.layer.clearLayers();
     // Add new markers
     if(markers.length > 0) {
         this.layer = L.layerGroup(markers);
