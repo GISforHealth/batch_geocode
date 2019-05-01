@@ -133,13 +133,13 @@ def validate_iso2(iso2_list):
         "TJ", "TZ", "TH", "TL", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TC", "TV", 
         "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ", "VU", "VE", "VN", "VG", "VI", 
         "WF", "EH", "YE", "ZM", "ZW"]
-    iso2_set = list(iso2_list.unique())
-    valid_iso2 = all(x in valid_iso2_set for x in iso2_list)
+    iso2_set = [element.upper() for element in list(iso2_list.unique())]
+    valid_iso2 = all(x in valid_iso2_set for x in iso2_set)
 
     if valid_iso2:
         return None
     else:
-        bad_iso2s = [item for item in iso2_list if item not in valid_iso2_set]
+        bad_iso2s = [item for item in iso2_set if item not in valid_iso2_set]
         if(len(bad_iso2s) > 1):
             bad_iso2s = ", ".join(bad_iso2s)
         else:
