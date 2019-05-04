@@ -161,14 +161,6 @@ class GCResults {
             var this_query = long_queries[i];
             // Check if there is a 'best' object in the dataset
             if (update_key in this.gc_long[this_query]){
-                // Remove selected attributes from the condensed object
-     //           var old_vals = getKeysFromObject(this.gc_condensed[this_query]).filter(
-      //              k => k.includes(update_key + "_")
-        //        );
-          //      for (var j = 0; j < old_vals.length; j++){
-            //        var remove_me = old_vals[j];
-              //      this.gc_long[this_query][remove_me] = '';
-                //};
                 // Add selected attributes back to the condensed object
                 var new_obj = this.gc_long[this_query][update_key];
                 var add_keys = getKeysFromObject(new_obj);
@@ -199,7 +191,7 @@ class GCResults {
 
 // Given a set of valid objects, create leaflet markers and add them to
 // the map
-function addResultMarkers(gc_results, lyr, map){
+function addResultMarkers(gc_results){
     // Iterate through all results and create markers for each
     var result_keys = getKeysFromObject(gc_results);
     var markers = [];
@@ -242,14 +234,7 @@ function addResultMarkers(gc_results, lyr, map){
             markers.push(circle);
         };
     };
-    // Add new markers
-    if(markers.length > 0) {
-        lyr = L.layerGroup(markers);
-        map.addLayer(lyr);
-        // Zoom to markers
-        var group = new L.featureGroup(markers)
-        map.fitBounds(group.getBounds(), {padding : L.point(20,20)});
-    }
+    return markers;
 }
 
 // Given a set of valid objects, populate a div with information about 
@@ -296,6 +281,7 @@ $(document).ready(function() {
         base_layer = L.layerGroup();
         marker_layer = L.layerGroup();
         mymap.addLayer(base_layer);
+        mymap.addLayer(marker_layer);
         // Parsing an 'over-stringified' string to JSON
         // This seems to be the only safe way to retrieve JSON from a 
         //  <meta> object
@@ -310,11 +296,18 @@ $(document).ready(function() {
             // Get the selection and use it to populate a list of results
             gc_selection = $('#gc_result option:selected').val();
             // Use these results to populate points on a map
-            addResultMarkers(
-                gc_results = gc_object.getLongForm()[gc_selection],
-                lyr = marker_layer,
-                map = mymap
+            markers = addResultMarkers(
+                gc_results = gc_object.getLongForm()[gc_selection]
             );
+            if(markers.length > 0) {
+                mymap.removeLayer(marker_layer);
+                marker_layer = L.layerGroup(markers);
+                mymap.addLayer(marker_layer);
+                // Zoom to markers
+                var group = new L.featureGroup(markers);
+                mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
+            }
+            // Populate details for each result on the map
             addResultDetails(
                 address = gc_selection, 
                 iso = gc_object.getCondensedForm()[gc_selection]['iso2'], 
@@ -327,14 +320,17 @@ $(document).ready(function() {
             var best_id = $(this).attr('id');
             // Mark the object "Best"
             gc_object.markBest(gc_selection,best_id);
-            // Update the map and document details
-            mymap.removeLayer(marker_layer);
-            marker_layer = L.layerGroup();
-            addResultMarkers(
-                gc_results = gc_object.getLongForm()[gc_selection],
-                lyr = marker_layer,
-                map = mymap
+            markers = addResultMarkers(
+                gc_results = gc_object.getLongForm()[gc_selection]
             );
+            if(markers.length > 0) {
+                mymap.removeLayer(marker_layer);
+                marker_layer = L.layerGroup(markers);
+                mymap.addLayer(marker_layer);
+                // Zoom to markers
+                var group = new L.featureGroup(markers);
+                mymap.fitBounds(group.getBounds(), {padding : L.point(20,20)});
+            }            
             addResultDetails(
                 address = gc_selection, 
                 iso = gc_object.getCondensedForm()[gc_selection]['iso2'], 
