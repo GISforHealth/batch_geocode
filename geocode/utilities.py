@@ -27,6 +27,7 @@ def read_to_pandas(fp, encoding='detect'):
             # Try to read using the passed encoding
             try:
                 df = readfun(fp, encoding=encoding)
+                print(df)
                 return (df, encoding, None)
             except Exception as e:
                 print(f"The file {fp} could not be opened with encoding {encoding}.")
@@ -156,14 +157,7 @@ def check_keys_for_tools(keygm, geonames, usetools):
     if("GN" in usetools):
         if(geonames == ""):
             return "Geonames has been specified as a service, a Geonames username must be provided."
-    
-def check_valid_file(filepath):
-    try:
-        fh = open(filepath, 'r')
-    except FileNotFoundError as e:
-        return(e)
-    if(not filepath.lower().endswith(('.csv', '.xlsx'))):
-        return("Geocoded file must be a .csv or .xlsx file")
+
 
 def read_and_prep_input(f, encoding) :
     if encoding == 'detect':
@@ -174,6 +168,7 @@ def read_and_prep_input(f, encoding) :
 
     df, encoding, read_error = read_to_pandas(csv_file, encoding)
     return df, encoding, read_error
+
 
 def prep_stringio_output(df):
     try:

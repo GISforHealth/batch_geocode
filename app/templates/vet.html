@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-
+{% import "bootstrap/wtf.html" as wtf %}
 {% block scripts %}
+
     <!-- Sourcing libraries and scripts -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="{{ url_for('static', filename='leaflet/leaflet.js') }}"></script>
     <!-- <script src="{{url_for('static', filename='vetting_maps.js')}}"></script> -->
     <link rel="stylesheet" href="{{ url_for('static', filename='leaflet/leaflet.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='vetting.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="{{ url_for('static', filename='leaflet/leaflet.js') }}"></script>
 
     <!-- JSON object containing the geocoded data and trigger is stored here -->
     <meta id='gc_json' 
@@ -37,7 +38,7 @@ function getKeysFromObject(obj){
 //  values, fill the select object with the values.
 function fillDropDownMenu(id, arr){
     $(id).empty();
-    $(id).append($('<option disabled selected value> -- select an option -- </option>'));
+    $(id).append($('<option disabled selected value> -- select a location to vet -- </option>'));
     $.each(arr, function(i, p){
         $(id).append($('<option></option>').val(p).html(p));
     });
@@ -349,11 +350,16 @@ $(document).ready(function() {
 
 
 {% block content %}
-    <form action="{{url_for('vet') }}" method="post" novalidate>
+    <form action="{{url_for('vet') }}" method="post" enctype=multipart/form-data novalidate>
         {{ form.hidden_tag() }}
-        <!-- Iterate through all form fields -->
+        <!-- Iterate through all form fields --> 
         {% for field in form %}
-            {% if field.type not in ["SubmitField","CSRFTokenField", "HiddenField"] %}
+            {% if field.type in ["FileField"] %}
+                <p>
+                    {{wtf.form_field(form.infile)}}
+                </p> 
+            {% endif %}
+            {% if field.type not in ["SubmitField","CSRFTokenField", "HiddenField", "FileField"] %}
                 <p>
                     {{ field.label }} <br>
                     {{ field(size=32) }} <br>
@@ -364,6 +370,7 @@ $(document).ready(function() {
             {% endif %} 
         {% endfor %}
         <p>
+            <br>
             {{ form.submit() }}
         </p>
     </form>

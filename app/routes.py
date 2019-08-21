@@ -64,14 +64,6 @@ def vet():
 
     # To do when the first (input data) form is submitted
     if load_form.validate_on_submit():
-
-        #check that file exists
-        error = utilities.check_valid_file(load_form.infile.data)
-        if(error is not None):
-            flash("Infile Error: " + str(error), 'error')
-            return render_template('vet.html', title='Vetting', form=load_form, 
-                                   vet_json=[], show_map=0, result_struct=struct)
-
         # Load input data as JSON object and pass to application
         try:    
             vetting_data = vet_geocode.VettingData(
@@ -105,36 +97,19 @@ def vet():
         returned_data = utilities.json_to_dataframe(returned_json)
 
         # Save the transformed JSON data using the submitted filepath
-        save_filepath = save_form.outfile.data
-        save_message = utilities.safe_save_vet_output(returned_data, save_filepath)
-
-        
-        if save_message == "Data saved successfully!":
-            flash(save_message, "success")
-            return render_template('vet.html', title='Vetting', form=final_form, 
-                               vet_json=[], show_map=0, result_struct=[])
-        else:
-            flash(save_message)
+        #save_filepath = save_form.outfile.data
+        #save_message = utilities.safe_save_vet_output(returned_data, save_filepath)
+        io_output, io_e = utilities.prep_stringio_output(returned_data)
+        if (io_e is not None):
+            flash(io_e)
             return render_template('vet.html', title='Vetting', form=save_form, 
                                vet_json=[], show_map=0, result_struct=[])
+
+        download_IO = BytesIO(io_output.getvalue().encode('utf-8'))
+        return send_file(download_IO, attachment_filename="vetting_results.csv", as_attachment=True)
 
     if final_form.validate_on_submit():
         return redirect('/index')
     # Start application for the first time
     return render_template('vet.html', title='Vetting', form=load_form, 
                            vet_json=[], show_map=0, result_struct=struct)
-
-@app.route('/download-csv/')
-def download_csv():
-    file_to_download = None
-    download_id = session["user_id_download"]
-    if download_id is None:
-        return "No download file found for this session, please try to query again"
-    for file in user_download_query_buffer:
-        if file[0] == download_id:
-            file_to_download = file[1]
-    if file_to_download is None:
-        return "No download file found"
-
-    download_IO = io.BytesIO(file_to_download.getvalue().encode('utf-8'))
-    return send_file(download_IO, attachment_filename="query_results.csv", as_attachment=True)
