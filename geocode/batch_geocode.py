@@ -15,11 +15,10 @@ Written in Python 3.6
 import argparse
 import numpy as np
 import pandas as pd
+from io import StringIO
 from geocode import query_funcs
-from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes, validate_iso2, check_keys_for_tools
+from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes, validate_iso2, check_keys_for_tools, read_and_prep_input, prep_stringio_output
 from tqdm import tqdm
-
-
 
 def rearrange_fields(gc_df):
     """Rearrange the column order of a geocoded dataframe and drop unnecessary 
@@ -39,7 +38,7 @@ def rearrange_fields(gc_df):
     return gc_df.reindex(labels=all_cols, axis='columns')
 
 
-def geocode_from_flask(infile, outfile, keygm, geonames, iso, encoding, address,
+def geocode_from_flask(infile, keygm, geonames, iso, encoding, address,
                        usetools, resultspersource, geo_buffer):
         """Create a function that can be called from flask routes.py that wraps the
         whole batch_geocode process."""
@@ -53,17 +52,17 @@ def geocode_from_flask(infile, outfile, keygm, geonames, iso, encoding, address,
 
         key_error = check_keys_for_tools(keygm, geonames, usetools)
         if (key_error is not None):
-            return("Key Error: ", key_error)
+            return(None, "Key Error: ", key_error)
 
         # Reading input file
-        df, encoding, read_error = read_to_pandas(infile, encoding)
+        df, encoding, read_error = read_and_prep_input(infile, encoding)
 
         if (read_error is not None):
-            return("Infile Error: ", read_error)
+            return(None, "Infile Error: ", read_error)
         #check for valid iso2s
         valid_iso2 = validate_iso2(df[iso])
         if(valid_iso2 is not None):
-            return("The following iso2s provided were invalid: ", valid_iso2)
+            return(None, "The following iso2s provided were invalid: ", valid_iso2)
         # Initialize progress bar for pandas
         tqdm.pandas()
 
@@ -81,13 +80,14 @@ def geocode_from_flask(infile, outfile, keygm, geonames, iso, encoding, address,
             geocoded_cols = rearrange_fields(geocoded_cols)
             df_with_geocoding = pd.concat([df, geocoded_cols], axis=1)            
         except Exception as e:
-            return("Geocoding Error: ", e)
+            return(None, "Geocoding Error: ", e)
 
         # Export Outfile
-        write_error = write_pandas(df=df_with_geocoding, fp=outfile, encoding=encoding)
-        if (write_error is not None):
-            return("Outfile Error: ", write_error)
-        return None, None
+        io_output, io_e = prep_stringio_output(df_with_geocoding)
+        if (io_e is not None):
+            return(None, "Error prepping file download: ", write_error)
+
+        return io_output, None, None
 
 
 if __name__ == "__main__":

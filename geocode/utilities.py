@@ -15,13 +15,14 @@ import json
 import re
 import csv
 import os
+from io import StringIO
 
 
 def read_to_pandas(fp, encoding='detect'):
     """Read an input Excel or CSV file as a pandas DataFrame, testing a variety
     of encodings."""
     try:
-        readfun = pd.read_csv if fp.lower().endswith('.csv') else pd.read_excel
+        readfun = pd.read_csv
         if encoding != 'detect':
             # Try to read using the passed encoding
             try:
@@ -163,3 +164,21 @@ def check_valid_file(filepath):
         return(e)
     if(not filepath.lower().endswith(('.csv', '.xlsx'))):
         return("Geocoded file must be a .csv or .xlsx file")
+
+def read_and_prep_input(f, encoding) :
+    if encoding == 'detect':
+        encoding = 'latin-1'
+    f.seek(0)
+    csv_file = f.read().decode(encoding)
+    csv_file = StringIO(csv_file)
+
+    df, encoding, read_error = read_to_pandas(csv_file, encoding)
+    return df, encoding, read_error
+
+def prep_stringio_output(df):
+    try:
+        string_buffer = StringIO()
+        df.to_csv(string_buffer, index=False)
+        return string_buffer, None
+    except Exception as e:
+        return None, e

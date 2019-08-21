@@ -1,10 +1,13 @@
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, FloatField, IntegerField, StringField, SubmitField, HiddenField
 from wtforms.validators import DataRequired, Optional
+from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileRequired, FileAllowed
 
 class GeocodeForm(FlaskForm):
-    infile = StringField('Infile (<i>required</i>)', validators=[DataRequired()])
-    outfile = StringField('Outfile (<i>required</i>)', validators=[DataRequired()])
+    infile = FileField("Infile", validators = [FileRequired(),
+        FileAllowed(['csv'], 
+        "csv's only please!")])
     address = StringField(
         'Address Field (Required)', 
         validators=[DataRequired()], 
@@ -46,3 +49,5 @@ class VetSaveForm(FlaskForm):
 class VetFinalForm(FlaskForm):
     submit = SubmitField('Return to Start')
 
+class IndexFinalForm(FlaskForm):
+    submit = SubmitField('Download Results!')

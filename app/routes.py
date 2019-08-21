@@ -1,10 +1,15 @@
 import json
 import urllib
-from flask import flash, render_template, request, Response, redirect
+from flask import flash, render_template, request, Response, redirect, send_file
 from app import app
-from app.forms import GeocodeForm, VetLoadForm, VetSaveForm, VetFinalForm
+from app.forms import GeocodeForm, VetLoadForm, VetSaveForm, VetFinalForm, IndexFinalForm
 from geocode import batch_geocode, vet_geocode, utilities
 import time
+from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileRequired
+from io import StringIO, BytesIO
+
+pass_through = list()
 
 @app.route('/')
 @app.route('/index', methods=['GET','POST'])
@@ -18,30 +23,34 @@ def index():
             if form.use_osm.data: usetools.append('OSM')
             if form.use_gn.data: usetools.append('GN')
 
-            error_type, error = batch_geocode.geocode_from_flask(
-                                    infile=form.infile.data,
-                                    outfile=form.outfile.data, 
-                                    encoding=form.encoding.data, 
-                                    address=form.address.data,
-                                    iso=form.iso.data,
-                                    keygm=form.key.data, 
-                                    geonames=form.geonames.data,
-                                    usetools=usetools, 
-                                    resultspersource=form.resultsper.data, 
-                                    geo_buffer=form.geo_buffer.data
+            geocoded_data, error_type, error = batch_geocode.geocode_from_flask(
+                                                    infile=form.infile.data, 
+                                                    encoding=form.encoding.data, 
+                                                    address=form.address.data,
+                                                    iso=form.iso.data,
+                                                    keygm=form.key.data, 
+                                                    geonames=form.geonames.data,
+                                                    usetools=usetools, 
+                                                    resultspersource=form.resultsper.data, 
+                                                    geo_buffer=form.geo_buffer.data
             )
+
+            pass_through.append(geocoded_data)
             if(error is not None):
                 flash(error_type + str(error), 'error')
             else:
-                flash(f"""Your output file for input file, {form.infile.data}, using 
-                          tools {usetools}, with {form.resultsper.data} 
-                          results per source, and a buffer of {form.geo_buffer.data} is 
-                          now ready to view at {form.outfile.data}.""")
-            return render_template('index.html', title='Home', form=form)
+                return render_template('index_end.html', title='Home', form=form)
         else:
             flash('Need to enter all required fields')
     return render_template('index.html', title='Home', form=form)
     
+@app.route('/index_end', methods=['GET','POST'])
+def index_end():
+    form = IndexFinalForm()
+    if form.validate_on_submit():
+        print(pass_through)
+        download_IO = BytesIO(pass_through[0].getvalue().encode('utf-8'))
+        return send_file(download_IO, attachment_filename="geocode_results.csv", as_attachment=True)
 
 @app.route('/vet', methods=['GET','POST'])
 def vet():
@@ -114,3 +123,18 @@ def vet():
     # Start application for the first time
     return render_template('vet.html', title='Vetting', form=load_form, 
                            vet_json=[], show_map=0, result_struct=struct)
+
+@app.route('/download-csv/')
+def download_csv():
+    file_to_download = None
+    download_id = session["user_id_download"]
+    if download_id is None:
+        return "No download file found for this session, please try to query again"
+    for file in user_download_query_buffer:
+        if file[0] == download_id:
+            file_to_download = file[1]
+    if file_to_download is None:
+        return "No download file found"
+
+    download_IO = io.BytesIO(file_to_download.getvalue().encode('utf-8'))
+    return send_file(download_IO, attachment_filename="query_results.csv", as_attachment=True)

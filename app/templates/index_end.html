@@ -1,0 +1,19 @@
+
+{% extends "base.html" %}
+
+{% block scripts %}{% endblock %}
+
+{% block content %}
+
+{% import "bootstrap/wtf.html" as wtf %}
+    <form action="{{url_for('index_end') }}" method="post" enctype=multipart/form-data novalidate>
+        {{ form.hidden_tag() }} 
+        <h3> Geocoding Complete! </h3>
+        <div id="content">   
+            {% raw %}
+            <input type="submit" id="submit" name="anything_submit" value="Download Results"></input>
+            {% endraw %}
+            </p>
+        </div>
+    </form>
+{% endblock %}

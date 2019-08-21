@@ -5,22 +5,17 @@
 
 {% block content %}
 
-    <form action="{{url_for('index') }}" method="post" novalidate>
+{% import "bootstrap/wtf.html" as wtf %}
+    <form action="{{url_for('index') }}" method="post" enctype=multipart/form-data novalidate>
         {{ form.hidden_tag() }} 
 
         <div id="content">   
-            <h3>Files and Encoding:</h3>
-            {% for field in [form.infile, form.outfile, form.encoding] %}
-                <p>
-                    {{ field.label }} <br>
-                    {{ field(size=32) }} <br>
-                    {% for error in field.errors %}
-                        <span style="color: red;">[{{ error }}]</span>
-                    {% endfor %}
-                </p>        
-            {% endfor %}
+            <h3>File Input:</h3>
+            <p>
+                {{wtf.form_field(form.infile)}}
+            </p>        
             <h3>Fields:</h3>
-            {% for field in [form.address, form.iso] %}
+            {% for field in [form.encoding, form.address, form.iso] %}
                 <p>
                     {{ field.label }} <br>
                     {{ field(size=32) }} <br>
