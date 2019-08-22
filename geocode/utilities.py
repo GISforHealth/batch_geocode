@@ -18,37 +18,6 @@ import os
 from io import StringIO
 
 
-def read_to_pandas(fp, encoding='detect'):
-    """Read an input Excel or CSV file as a pandas DataFrame, testing a variety
-    of encodings."""
-    try:
-        readfun = pd.read_csv
-        if encoding != 'detect':
-            # Try to read using the passed encoding
-            try:
-                df = readfun(fp, encoding=encoding)
-                print(df)
-                return (df, encoding, None)
-            except Exception as e:
-                print(f"The file {fp} could not be opened with encoding {encoding}.")
-                print("Testing out all valid character encodings now...")
-        # If the 
-        test_encodings = ['utf-8','latin1'] + list(aliases.keys())
-        valid_encoding = None
-        for test_encoding in test_encodings:
-            try:
-                df = readfun(fp, encoding=test_encoding)
-                valid_encoding = test_encoding
-            except UnicodeDecodeError:
-                pass
-        if valid_encoding is None:
-            return(None, None, UnicodeDecodeError(encoding='All standard encodings', reason='', 
-                object=f'file {fp}', start=0, end=0))
-        return (df, valid_encoding, None)
-    except Exception as e:
-        return(None, None, e)
-
-
 def write_pandas(df, fp, encoding):
     """Write a pandas DataFrame to a CSV or Excel file using a known file
     encoding."""
@@ -160,14 +129,29 @@ def check_keys_for_tools(keygm, geonames, usetools):
 
 
 def read_and_prep_input(f, encoding) :
-    if encoding == 'detect':
-        encoding = 'latin-1'
-    f.seek(0)
-    csv_file = f.read().decode(encoding)
-    csv_file = StringIO(csv_file)
+    
+    encoding_list = [encoding] + ['utf-8', 'latin-1']
 
-    df, encoding, read_error = read_to_pandas(csv_file, encoding)
-    return df, encoding, read_error
+    valid_encoding = None
+    print(encoding_list)
+    for test_encoding in encoding_list:
+        try:
+            f.seek(0)
+            print(test_encoding)
+            csv_file = f.read().decode(test_encoding)
+            f.close()
+            print(csv_file)
+            csv_file = StringIO(csv_file)
+            df = pd.read_csv(csv_file, encoding=test_encoding)
+            valid_encoding = test_encoding
+            return df, valid_encoding, None
+        except (UnicodeDecodeError, LookupError) as e:
+            print(e)
+            pass
+
+    if valid_encoding is None:
+        return None, None, "In encodings: " + ' '.join(encoding_list) + ", no valid encodings were found"
+    return None, None, "You should never see this"
 
 
 def prep_stringio_output(df):
@@ -177,3 +161,41 @@ def prep_stringio_output(df):
         return string_buffer, None
     except Exception as e:
         return None, e
+
+
+def validate_columns(df, iso, address):
+    if iso not in df.columns:
+        return iso + " column not found in input data"
+    if address not in df.columns:
+        return address + " column not found in input data"
+    return None
+
+
+def read_to_pandas(fp, encoding='detect'):
+    """Read an input Excel or CSV file as a pandas DataFrame, testing a variety
+    of encodings."""
+    try:
+        readfun = pd.read_csv if fp.lower().endswith('.csv') else pd.read_excel
+        if encoding != 'detect':
+            # Try to read using the passed encoding
+            try:
+                df = readfun(fp, encoding=encoding)
+                return (df, encoding, None)
+            except Exception as e:
+                print(f"The file {fp} could not be opened with encoding {encoding}.")
+                print("Testing out all valid character encodings now...")
+        # If the 
+        test_encodings = ['utf-8','latin1'] + list(aliases.keys())
+        valid_encoding = None
+        for test_encoding in test_encodings:
+            try:
+                df = readfun(fp, encoding=test_encoding)
+                valid_encoding = test_encoding
+            except UnicodeDecodeError:
+                pass
+        if valid_encoding is None:
+            return(None, None, UnicodeDecodeError(encoding='All standard encodings', reason='', 
+                object=f'file {fp}', start=0, end=0))
+        return (df, valid_encoding, None)
+    except Exception as e:
+        return(None, None, e)

@@ -11,7 +11,7 @@ Written in Python 3.6
 """
 import numpy as np
 import pandas as pd
-from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes, read_and_prep_input
+from geocode.utilities import write_pandas, get_geocoding_suffixes, read_and_prep_input, validate_columns
 
 
 class VettingData(object):
@@ -40,6 +40,10 @@ class VettingData(object):
 
         if(error is not None):
             self.error = error
+
+        invalid_columns = validate_columns(in_df, self.iso_col, self.address_col)
+        if(invalid_columns is not None):
+            self.error = invalid_columns
 
         # Create a unique index field
         in_df['__index'] = range( 0, in_df.shape[0] )

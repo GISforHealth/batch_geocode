@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from io import StringIO
 from geocode import query_funcs
-from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes, validate_iso2, check_keys_for_tools, read_and_prep_input, prep_stringio_output
+from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes, validate_iso2, check_keys_for_tools, read_and_prep_input, prep_stringio_output, validate_columns
 from tqdm import tqdm
 
 def rearrange_fields(gc_df):
@@ -59,10 +59,16 @@ def geocode_from_flask(infile, keygm, geonames, iso, encoding, address,
 
         if (read_error is not None):
             return(None, "Infile Error: ", read_error)
-        #check for valid iso2s
+
+        # Check that columns from web page are in dataset
+        invalid_columns = validate_columns(df, iso, address)
+        if(invalid_columns is not None):
+            return(None, "Invalid column: ", invalid_columns, ". If you are sure the columns names are correct, the encoding may be wrong.")
+        # Check for invalid iso2s in dataset
         valid_iso2 = validate_iso2(df[iso])
         if(valid_iso2 is not None):
             return(None, "The following iso2s provided were invalid: ", valid_iso2)
+
         # Initialize progress bar for pandas
         tqdm.pandas()
 
@@ -153,7 +159,11 @@ if __name__ == "__main__":
     print("***      BEGIN GEOCODING      ***")
     print("*********************************")
     print("Reading input file...")
-    df, encoding = read_to_pandas(c_args.infile, c_args.encoding)
+    df, encoding, errors = read_to_pandas(c_args.infile, c_args.encoding)
+
+    if errors is not None:
+        print("File loading failed: ")
+        raise Exception(errors)
 
     print(f"Geocoding {df.shape[0]} rows of data...")
     # Initialize progress bar for pandas

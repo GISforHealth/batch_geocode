@@ -10,10 +10,9 @@ from flask_wtf.file import FileField, FileRequired
 from io import StringIO, BytesIO
 import uuid
 import collections
-import pandas as pd
-from collections import namedtuple
-import hashlib
 
+# Holds the output data going from index to index_end, by user_id key
+# This is necessary to avoid global overwriting with concurrent usage
 geocoding_user_variable_buffer = collections.deque(maxlen=20)
 
 @app.route('/')
@@ -23,6 +22,7 @@ def index():
     if request.method == 'POST':
         if form.validate_on_submit():
             
+            # Define a user id to identify the download csv in the global deque
             user_id = uuid.uuid4()
             session['user_id_geocode'] = user_id
 
@@ -32,6 +32,7 @@ def index():
             if form.use_osm.data: usetools.append('OSM')
             if form.use_gn.data: usetools.append('GN')
 
+            # Main function which runs the entire geocoding process
             geocoded_data, error_type, error = batch_geocode.geocode_from_flask(
                                                     infile=form.infile.data, 
                                                     encoding=form.encoding.data, 
@@ -43,7 +44,8 @@ def index():
                                                     resultspersource=form.resultsper.data, 
                                                     geo_buffer=form.geo_buffer.data
             )
-            print(geocoded_data)
+
+            # Add geocoded data to global deque so it is accessible from end page
             geocoding_user_variable_buffer.append((user_id, geocoded_data))
             if(error is not None):
                 flash(error_type + str(error), 'error')
@@ -58,6 +60,7 @@ def index_end():
     form = IndexFinalForm()
     back_form = GeocodeForm()
     if form.validate_on_submit():
+        # Pull data from the global deque for download
         user_id = session['user_id_geocode']
         file_to_download = None
         if user_id is None:
@@ -65,9 +68,7 @@ def index_end():
             return render_template('index.html', title='Home', form=back_form)
         for file in geocoding_user_variable_buffer:
             if file[0] == user_id:
-                print(file[1])
                 file_to_download = file[1]
-                print(file_to_download)
         if file_to_download is None:
             flash('No data returned from geocoding, please start over', 'error')
             return render_template('index.html', title='Home', form=back_form)
@@ -79,8 +80,7 @@ def vet():
     # Instantiate form to get input filepath
     load_form = VetLoadForm()
     save_form = VetSaveForm()
-    # Instantiate an object that will be passed to the page definining 
-    #  source types and source suffixes
+    # Instantiate an object that will be passed to the page definining source types and source suffixes
     struct = utilities.get_geocoding_suffixes()
 
     # To do when the first (input data) form is submitted
@@ -98,8 +98,8 @@ def vet():
             return render_template('vet.html', title='Vetting', form=load_form, 
                                    vet_json=[], show_map=0, result_struct=struct)
 
-        #loading happens inside the constructor call for vet_geocode, so issues with loading the data (which uses a function shared with index)
-        #there is separate error checking that happens here
+        # loading happens inside the constructor call for vet_geocode, so issues with loading the data (which uses a function shared with index)
+        # there is separate error checking that happens here
         if(vetting_data.get_error() is not None):
             flash("Infile Loading Error: " + str(vetting_data.get_error()), 'error')
             return render_template('vet.html', title='Vetting', form=load_form, 
@@ -113,13 +113,11 @@ def vet():
 
     # To do when the second (save vetted data) form is submitted
     if save_form.validate_on_submit():
-        #Get the transformed JSON data from the page
+        # Get the transformed JSON data from the page
         returned_json = urllib.parse.unquote(save_form.json_data.data)
         returned_data = utilities.json_to_dataframe(returned_json)
 
-        # Save the transformed JSON data using the submitted filepath
-        #save_filepath = save_form.outfile.data
-        #save_message = utilities.safe_save_vet_output(returned_data, save_filepath)
+        # Prepare data for download through browser 
         io_output, io_e = utilities.prep_stringio_output(returned_data)
         if (io_e is not None):
             flash(io_e)
