@@ -79,7 +79,6 @@ def vet():
     # Instantiate form to get input filepath
     load_form = VetLoadForm()
     save_form = VetSaveForm()
-    final_form = VetFinalForm()
     # Instantiate an object that will be passed to the page definining 
     #  source types and source suffixes
     struct = utilities.get_geocoding_suffixes()
@@ -130,8 +129,6 @@ def vet():
         download_IO = BytesIO(io_output.getvalue().encode('utf-8'))
         return send_file(download_IO, attachment_filename="vetting_results.csv", as_attachment=True)
 
-    if final_form.validate_on_submit():
-        return redirect('/index')
     # Start application for the first time
     return render_template('vet.html', title='Vetting', form=load_form, 
                            vet_json=[], show_map=0, result_struct=struct)

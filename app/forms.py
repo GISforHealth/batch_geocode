@@ -42,8 +42,5 @@ class VetSaveForm(FlaskForm):
     json_data = HiddenField()
     submit = SubmitField('Download Results!')
 
-class VetFinalForm(FlaskForm):
-    submit = SubmitField('Return to Start')
-
 class IndexFinalForm(FlaskForm):
     submit = SubmitField('Download Results!')
