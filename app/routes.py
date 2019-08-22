@@ -2,7 +2,7 @@ import json
 import urllib
 from flask import flash, render_template, request, Response, redirect, send_file, session
 from app import app
-from app.forms import GeocodeForm, VetLoadForm, VetSaveForm, VetFinalForm, IndexFinalForm
+from app.forms import GeocodeForm, VetLoadForm, VetSaveForm, IndexFinalForm
 from geocode import batch_geocode, vet_geocode, utilities
 import time
 from flask_wtf import FlaskForm
