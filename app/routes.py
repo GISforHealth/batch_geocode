@@ -1,6 +1,6 @@
 import json
 import urllib
-from flask import flash, render_template, request, Response, redirect, send_file
+from flask import flash, render_template, request, Response, redirect, send_file, session
 from app import app
 from app.forms import GeocodeForm, VetLoadForm, VetSaveForm, VetFinalForm, IndexFinalForm
 from geocode import batch_geocode, vet_geocode, utilities
@@ -8,8 +8,13 @@ import time
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired
 from io import StringIO, BytesIO
+import uuid
+import collections
+import pandas as pd
+from collections import namedtuple
+import hashlib
 
-pass_through = list()
+geocoding_user_variable_buffer = collections.deque(maxlen=20)
 
 @app.route('/')
 @app.route('/index', methods=['GET','POST'])
@@ -17,6 +22,10 @@ def index():
     form = GeocodeForm()
     if request.method == 'POST':
         if form.validate_on_submit():
+            
+            user_id = uuid.uuid4()
+            session['user_id_geocode'] = user_id
+
             # Define the string of tools to use
             usetools = list()
             if form.use_gm.data: usetools.append('GM')
@@ -34,8 +43,8 @@ def index():
                                                     resultspersource=form.resultsper.data, 
                                                     geo_buffer=form.geo_buffer.data
             )
-
-            pass_through.append(geocoded_data)
+            print(geocoded_data)
+            geocoding_user_variable_buffer.append((user_id, geocoded_data))
             if(error is not None):
                 flash(error_type + str(error), 'error')
             else:
@@ -47,9 +56,22 @@ def index():
 @app.route('/index_end', methods=['GET','POST'])
 def index_end():
     form = IndexFinalForm()
+    back_form = GeocodeForm()
     if form.validate_on_submit():
-        print(pass_through)
-        download_IO = BytesIO(pass_through[0].getvalue().encode('utf-8'))
+        user_id = session['user_id_geocode']
+        file_to_download = None
+        if user_id is None:
+            flash('Problem with user id, please start over', 'error')
+            return render_template('index.html', title='Home', form=back_form)
+        for file in geocoding_user_variable_buffer:
+            if file[0] == user_id:
+                print(file[1])
+                file_to_download = file[1]
+                print(file_to_download)
+        if file_to_download is None:
+            flash('No data returned from geocoding, please start over', 'error')
+            return render_template('index.html', title='Home', form=back_form)
+        download_IO = BytesIO(file_to_download.getvalue().encode('utf-8'))
         return send_file(download_IO, attachment_filename="geocode_results.csv", as_attachment=True)
 
 @app.route('/vet', methods=['GET','POST'])
