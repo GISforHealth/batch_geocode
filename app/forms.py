@@ -16,7 +16,7 @@ class GeocodeForm(FlaskForm):
     iso = StringField('ISO2 Field', default='iso2')
     key = StringField('Google Maps Key (<i>required if using GM</i>)')
     geonames = StringField('Geonames Username (<i>required if using GN</i>)')
-    encoding = StringField('Encoding', default='detect')
+    encoding = StringField('Encoding (Tries utf-8 and latin1 if "detect")', default='detect')
     resultsper = IntegerField('Results Per Source', default=2)
     geo_buffer = FloatField('Buffer Size', default=15)
     use_gm = BooleanField('Query Google Maps?')
@@ -35,7 +35,7 @@ class VetLoadForm(FlaskForm):
         default='address'
     )
     iso = StringField('ISO2 Field', default='iso2')
-    encoding = StringField('Encoding', default='detect')
+    encoding = StringField('Encoding (Tries utf-8 and latin1 if "detect")', default='detect')
     submit = SubmitField('Load geocoded data')
 
 class VetSaveForm(FlaskForm):
@@ -44,3 +44,6 @@ class VetSaveForm(FlaskForm):
 
 class IndexFinalForm(FlaskForm):
     submit = SubmitField('Download Results!')
+
+class InstructionForm(FlaskForm):
+    filler = HiddenField()

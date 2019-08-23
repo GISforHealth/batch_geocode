@@ -2,7 +2,7 @@ import json
 import urllib
 from flask import flash, render_template, request, Response, redirect, send_file, session
 from app import app
-from app.forms import GeocodeForm, VetLoadForm, VetSaveForm, IndexFinalForm
+from app.forms import GeocodeForm, VetLoadForm, VetSaveForm, IndexFinalForm, InstructionForm
 from geocode import batch_geocode, vet_geocode, utilities
 import time
 from flask_wtf import FlaskForm
@@ -14,6 +14,11 @@ import collections
 # Holds the output data going from index to index_end, by user_id key
 # This is necessary to avoid global overwriting with concurrent usage
 geocoding_user_variable_buffer = collections.deque(maxlen=20)
+
+@app.route('/instructions')
+def instructions():
+    form = InstructionForm()
+    return render_template('instructions.html', title='Instructions', form=form)
 
 @app.route('/')
 @app.route('/index', methods=['GET','POST'])
