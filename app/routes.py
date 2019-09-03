@@ -99,11 +99,13 @@ def vet():
         save_filepath = save_form.outfile.data
         save_message = utilities.safe_save_vet_output(returned_data, save_filepath)
 
-        flash(save_message)
+        
         if save_message == "Data saved successfully!":
+            flash(save_message, "success")
             return render_template('vet.html', title='Vetting', form=final_form, 
                                vet_json=[], show_map=0, result_struct=[])
         else:
+            flash(save_message)
             return render_template('vet.html', title='Vetting', form=save_form, 
                                vet_json=[], show_map=0, result_struct=[])
 
