@@ -17,15 +17,7 @@
     >
 
     <script>
-// *** FUNCTION DEFINITIONS ***
-// Make a Leaflet map, with no layers and an OSM background
-function makeMap(map_id){
-    var TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-    var MB_ATTR = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
-    var mymap = L.map(map_id).setView([0, 0], 1);
-    L.tileLayer(TILE_URL, {attribution: MB_ATTR}).addTo(mymap);
-    return mymap
-}
+
 
 // Add all keys from a Javascript object to an array (list)
 function getKeysFromObject(obj){
@@ -278,10 +270,19 @@ var marker_layer;
 $(document).ready(function() {
     if( show_map == 1 ){
         // Create a map and add a blank layer object
-        mymap = makeMap('leafmap');
-        base_layer = L.layerGroup();
+        var roadmap = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'}), satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'});
+
+        var mymap = L.map("leafmap").setView([0, 0], 1);
+        mymap.addLayer(roadmap)
+        var baseMaps = {
+            "Roadmap": roadmap,
+            "Satellite": satellite
+        };
+        L.control.layers(baseMaps).addTo(mymap);
+
         marker_layer = L.layerGroup();
-        mymap.addLayer(base_layer);
         mymap.addLayer(marker_layer);
         // Parsing an 'over-stringified' string to JSON
         // This seems to be the only safe way to retrieve JSON from a 
