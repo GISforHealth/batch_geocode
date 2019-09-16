@@ -133,20 +133,16 @@ def read_and_prep_input(f, encoding) :
     encoding_list = [encoding] + ['utf-8', 'latin-1']
 
     valid_encoding = None
-    print(encoding_list)
     for test_encoding in encoding_list:
         try:
             f.seek(0)
-            print(test_encoding)
             csv_file = f.read().decode(test_encoding)
             f.close()
-            print(csv_file)
             csv_file = StringIO(csv_file)
             df = pd.read_csv(csv_file, encoding=test_encoding)
             valid_encoding = test_encoding
             return df, valid_encoding, None
         except (UnicodeDecodeError, LookupError) as e:
-            print(e)
             pass
 
     if valid_encoding is None:

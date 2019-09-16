@@ -5,6 +5,7 @@ from app import app
 from app.forms import GeocodeForm, VetLoadForm, VetSaveForm, IndexFinalForm, InstructionForm
 from geocode import batch_geocode, vet_geocode, utilities
 import time
+import datetime
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired
 from io import StringIO, BytesIO
@@ -69,16 +70,19 @@ def index_end():
         user_id = session['user_id_geocode']
         file_to_download = None
         if user_id is None:
-            flash('Problem with user id, please start over', 'error')
+            flash('No data found for download, please try reuploading', 'error')
             return render_template('index.html', title='Home', form=back_form)
         for file in geocoding_user_variable_buffer:
             if file[0] == user_id:
                 file_to_download = file[1]
         if file_to_download is None:
-            flash('No data returned from geocoding, please start over', 'error')
+            flash('No data returned from geocoding, please try reuploading', 'error')
             return render_template('index.html', title='Home', form=back_form)
         download_IO = BytesIO(file_to_download.getvalue().encode('utf-8'))
-        return send_file(download_IO, attachment_filename="geocode_results.csv", as_attachment=True)
+
+        current_date = datetime.datetime.now()
+        file_out_name = "geocode_results_" + str(current_date.strftime("%Y")) + "_" + str(current_date.strftime("%d")) + "_" + str(current_date.strftime("%m")) + ".csv"
+        return send_file(download_IO, attachment_filename=file_out_name, as_attachment=True)
 
 @app.route('/vet', methods=['GET','POST'])
 def vet():
@@ -130,7 +134,9 @@ def vet():
                                vet_json=[], show_map=0, result_struct=[])
 
         download_IO = BytesIO(io_output.getvalue().encode('utf-8'))
-        return send_file(download_IO, attachment_filename="vetting_results.csv", as_attachment=True)
+        current_date = datetime.datetime.now()
+        file_out_name = "vetting_results_" + str(current_date.strftime("%Y")) + "_" + str(current_date.strftime("%d")) + "_" + str(current_date.strftime("%m")) + ".csv"
+        return send_file(download_IO, attachment_filename=file_out_name, as_attachment=True)
 
     # Start application for the first time
     return render_template('vet.html', title='Vetting', form=load_form, 
