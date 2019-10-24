@@ -11,7 +11,7 @@ Written in Python 3.6
 """
 import numpy as np
 import pandas as pd
-from geocode.utilities import read_to_pandas, write_pandas, get_geocoding_suffixes
+from geocode.utilities import write_pandas, get_geocoding_suffixes, read_and_prep_input, validate_columns
 
 
 class VettingData(object):
@@ -33,11 +33,17 @@ class VettingData(object):
         self.error = None
 
     def load_data(self):
+
+        in_df, self.encoding, error = read_and_prep_input(self.in_fp, self.encoding)
         '''Load input file as a dataframe'''
-        in_df, self.encoding, error = read_to_pandas(fp=self.in_fp, encoding=self.encoding)
+        #in_df, self.encoding, error = read_to_pandas(fp=self.in_fp, encoding=self.encoding)
 
         if(error is not None):
             self.error = error
+
+        invalid_columns = validate_columns(in_df, self.iso_col, self.address_col)
+        if(invalid_columns is not None):
+            self.error = invalid_columns
 
         # Create a unique index field
         in_df['__index'] = range( 0, in_df.shape[0] )
