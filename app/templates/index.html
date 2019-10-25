@@ -1,0 +1,67 @@
+
+{% extends "base.html" %}
+
+{% block scripts %}{% endblock %}
+
+{% block content %}
+
+{% import "bootstrap/wtf.html" as wtf %}
+    <form action="{{url_for('index') }}" method="post" enctype=multipart/form-data novalidate>
+        {{ form.hidden_tag() }} 
+
+        <div id="content">   
+            <h3>File Input:</h3>
+            <p>
+                {{wtf.form_field(form.infile)}}
+            </p>        
+            <h3>Fields:</h3>
+            {% for field in [form.encoding, form.address, form.iso] %}
+                <p>
+                    {{ field.label }} <br>
+                    {{ field(size=32) }} <br>
+                    {% for error in field.errors %}
+                        <span style="color: red;">[{{ error }}]</span>
+                    {% endfor %}
+                </p>        
+            {% endfor %}
+            <h3>Geocoding Services and Keys:</h3>
+            <p>
+                {{ form.use_gm.label }} {{ form.use_gm(checked=True) }}<br>
+                {{ form.use_osm.label }} {{ form.use_osm(checked=False) }}<br>
+                {{ form.use_gn.label }} {{ form.use_gn(checked=True) }}<br>
+            </p>
+            <p>
+                {{ form.key.label }} <br>
+                {{ form.key(size=32) }} <br>
+            </p>
+            <p>
+                {{ form.geonames.label }} <br>
+                {{ form.geonames(size=32) }} <br>
+            </p>
+            <h3>Geocoding Options:</h3>
+            <p>
+                {{ form.resultsper.label }}<br> 
+                {{ form.resultsper(size=32) }}
+            </p>
+            <p>
+                {{ form.geo_buffer.label }}<br> 
+                {{ form.geo_buffer(size=32) }}
+            </p>
+            <p>
+                {% raw %}
+                <input type="submit" id="submit" name="anything_submit" value="Geocode"></input>
+                {% endraw %}
+                <script>
+                $('#submit').click(function() {
+                    $('#loading').css({
+                        'display': 'block',
+                    });
+                    $('#content').css({
+                        'display': 'none',
+                    });
+                });
+                </script>
+            </p>
+        </div>
+    </form>
+{% endblock %}

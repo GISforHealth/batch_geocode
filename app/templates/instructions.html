@@ -1,0 +1,39 @@
+
+{% extends "base.html" %}
+
+{% block scripts %}{% endblock %}
+
+{% block content %}
+    <form action="{{url_for('instructions') }}" method="post" novalidate>
+        <div id="content">   
+            <h3>About this Tool</h3>
+            <p>The geocoding tool in the Geocode Data tab uses online resources (Google maps, Geonames, Open Street Map) to find probable latitude/longitudes for addresses and place names. The Vetting tool in the Vet Results tab takes in the geocoding outputs and plots them on a map, location by location, and allows the user to select the coordinate believed to be the most likely match. Use the drop down menu at the top of the map to select a location, and use the mark best buttons below the map to select the location to mark best in the output.</p>
+            <br>
+            <h3>Inputs to the Geocoding Tool</h3>
+            <h4>Infile</h4>
+            <p>Select the button to choose a file to upload to the geocoding tool. The file must be a csv with two columns. The first column (Default: Address) contains place names or addresses to match. The second column (Default: iso2) contains iso2 codes for the suspected country.</p>
+            <h4>Encoding</h4>
+            <p>The encoding of the csv file passed to upload. The default "detect" option will try utf-8 and latin1. Note that addresses with nonlatin characters (i.e. cyrillic) must be in utf-8 or another encoding that supports them. Incorrect encoding specifications may cause strange bugs.</p>
+            <h4>Address Field</h4>
+            <p>The name of the address column in the infile.</p>
+            <h4>ISO2 Field</h4>
+            <p>The name of the iso2 column in the infile.</p>
+            <h4>Geocoding Services and Keys </h4>
+            <p>Use the checkboxes to select which of the three services you'd like to use to geomatch to. Google maps requires an API key, Instructions for which can be googled. Note that the google maps API is no longer free, and billing must be associated with the account. Geonames also requires a valid username, which can be created on the geonames website. This is free and quick to set up.</p>
+            <h4>Results Per Source</h4>
+            <p>The number of results returned from each of the geocoding services. Note that services will only return as many results as can be found in that country.</p>
+            <h4>Buffer Size</h4>
+            <p>The geocoding tool will automatically assign a "best" coordinate if all points fall within a circular buffer of this size (in kilometers).</p>
+            <br>
+            <h3>Inputs to the Vetting Tool</h3>
+            <h4>Infile</h4>
+            <p>Select the button to choose a file to upload to the geocoding tool. The file must be a csv outputted from the geocoding tool.</p>
+            <h4>Address Field</h4>
+            <p>The name of the address column in the infile.</p>
+            <h4>ISO2 Field</h4>
+            <p>The name of the iso2 column in the infile.</p>
+            <h4>Encoding</h4>
+            <p>The encoding of the csv file passed to upload. This must be the same as the encoding used to produce the infile in the geocoding tool. Strange things may happen otherwise.</p>
+        </div>
+    </form>
+{% endblock %}
