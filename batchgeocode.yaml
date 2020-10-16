@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: batchgeocode
+    namespace: batch-geocode
+    annotations:
+        # NOTE: needs to match metallb YAML config
+        metallb.universe.tf/address-pool: general-purpose
+    labels:
+        app: batchgeocode
+spec:
+    ports:
+        - name: batchgeocode
+          port: 9000
+          protocol: TCP
+          targetPort: 5000
+    selector:
+        app: batchgeocode
+    type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    namespace: batch-geocode
+    name: batchgeocode
+spec:
+    selector:
+        matchLabels:
+            app: batchgeocode
+    serviceName: batchgeocode
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: batchgeocode
+        spec:
+            dnsPolicy: Default
+            containers:
+              - name: batchgeocode
+                image: mlc314/batch_geocode
+                ports:
+                  - name: batchgeocode
+                    containerPort: 9000
