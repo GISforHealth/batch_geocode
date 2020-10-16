@@ -13,3 +13,6 @@ status:
 
 get_ip:
 	$(KUBECMD) get services --namespace batch-geocode
+
+login:
+	$(KUBECMD) -n batch-geocode exec -it batchgeocode-0 -- /bin/bash

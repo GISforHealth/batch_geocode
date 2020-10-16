@@ -34,6 +34,7 @@ spec:
             labels:
                 app: batchgeocode
         spec:
+            dnsPolicy: Default
             containers:
               - name: batchgeocode
                 image: mlc314/batch_geocode
