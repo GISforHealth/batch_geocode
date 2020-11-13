@@ -5,7 +5,8 @@ metadata:
     namespace: batch-geocode
     annotations:
         # NOTE: needs to match metallb YAML config
-        metallb.universe.tf/address-pool: general-purpose
+        metallb.universe.tf/address-pool: geo-apps
+        metallb.universe.tf/allow-shared-ip: app
     labels:
         app: batchgeocode
 spec:
@@ -14,6 +15,7 @@ spec:
           port: 9000
           protocol: TCP
           targetPort: 5000
+    externalTrafficPolicy: Cluster
     selector:
         app: batchgeocode
     type: LoadBalancer
