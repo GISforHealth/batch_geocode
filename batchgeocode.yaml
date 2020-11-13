@@ -5,12 +5,11 @@ metadata:
     namespace: batch-geocode
     annotations:
         # NOTE: needs to match metallb YAML config
-        metallb.universe.tf/address-pool: general-purpose
+        metallb.universe.tf/address-pool: geo-apps
         metallb.universe.tf/allow-shared-ip: app
     labels:
         app: batchgeocode
 spec:
-    externalIPs: [10.158.151.104]
     ports:
         - name: batchgeocode
           port: 9000
