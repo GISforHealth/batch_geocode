@@ -91,7 +91,7 @@ def geocode_from_flask(infile, keygm, geonames, iso, encoding, address,
         # Export Outfile
         io_output, io_e = prep_stringio_output(df_with_geocoding)
         if (io_e is not None):
-            return(None, "Error prepping file download: ", write_error)
+            return(None, "Error prepping file download: ", io_e)
 
         return io_output, None, None
 
