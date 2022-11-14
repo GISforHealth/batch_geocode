@@ -63,7 +63,7 @@ def geocode_from_flask(infile, keygm, geonames, iso, encoding, address,
         # Check that columns from web page are in dataset
         invalid_columns = validate_columns(df, iso, address)
         if(invalid_columns is not None):
-            return(None, "Invalid column: ", invalid_columns, ". If you are sure the columns names are correct, the encoding may be wrong.")
+            return(None, "Invalid column: ", f"{', '.join(invalid_columns)}. If you are sure the columns names are correct, the encoding may be wrong.")
         # Check for invalid iso2s in dataset
         valid_iso2 = validate_iso2(df[iso])
         if(valid_iso2 is not None):
