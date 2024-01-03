@@ -82,7 +82,7 @@ def index_end():
 
         current_date = datetime.datetime.now()
         file_out_name = "geocode_results_" + str(current_date.strftime("%Y")) + "_" + str(current_date.strftime("%m")) + "_" + str(current_date.strftime("%d")) + ".csv"
-        return send_file(download_IO, attachment_filename=file_out_name, as_attachment=True)
+        return send_file(download_IO, download_name=file_out_name, as_attachment=True)
 
 @app.route('/vet', methods=['GET','POST'])
 def vet():
@@ -136,7 +136,7 @@ def vet():
         download_IO = BytesIO(io_output.getvalue().encode('utf-8'))
         current_date = datetime.datetime.now()
         file_out_name = "vetting_results_" + str(current_date.strftime("%Y")) + "_" + str(current_date.strftime("%m")) + "_" + str(current_date.strftime("%d")) + ".csv"
-        return send_file(download_IO, attachment_filename=file_out_name, as_attachment=True)
+        return send_file(download_IO, download_name=file_out_name, as_attachment=True)
 
     # Start application for the first time
     return render_template('vet.html', title='Vetting', form=load_form, 

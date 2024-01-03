@@ -34,7 +34,7 @@ spec:
             dnsPolicy: Default
             containers:
               - name: batchgeocode
-                image: mlc314/batch_geocode
+                image: docker-sae.artifactory.ihme.washington.edu/mlc314/batch_geocode
                 ports:
                   - name: batchgeocode
                     containerPort: 80
