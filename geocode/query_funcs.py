@@ -221,7 +221,7 @@ class WebGeocodingManager(object):
     def get_results_as_series(self):
         """Systematically pass back the location result as a pandas Series."""
         # Initialize empty results
-        results_to_return = [ pd.Series([]) ]
+        results_to_return = [ pd.Series([], dtype='Float64') ]
         valid_keys = [k for k in self.location_results.keys() 
                         if self.location_results[k] is not None]
         # Get a series representation of each non-empty location result, 
